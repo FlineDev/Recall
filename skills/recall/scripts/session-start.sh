@@ -1,9 +1,13 @@
 #!/bin/bash
 # session-start.sh — Runs on SessionStart after compaction.
-# Injects the recall transcript directly into Claude's context via additionalContext JSON.
+# Outputs instructions for Claude to read the recall transcript file.
+#
+# Strategy: PreCompact already created the file. We output plain text telling
+# Claude to read it. We also try additionalContext JSON (currently broken for
+# "compact" source — see github.com/anthropics/claude-code/issues/28305).
+# When the bug is fixed, the JSON path gives instant injection without a Read call.
 #
 # Hook input (stdin JSON): { "session_id": "...", "cwd": "...", "source": "compact", ... }
-# Hook output (stdout): JSON with additionalContext — injected into Claude's context window.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INPUT=$(cat)
@@ -37,42 +41,24 @@ if [ ! -f "$OUTPUT_FILE" ] || [ ! -s "$OUTPUT_FILE" ]; then
    exit 0
 fi
 
-# Inject the file content into Claude's context via additionalContext JSON.
-# This is the reliable method (fixed in Claude Code v2.0.76+).
-# Python handles JSON escaping of the file content properly.
-python3 -c "
-import json, sys
+# Output plain text instructions for Claude to read the file.
+# This appears as hook output in Claude's context after compaction.
+cat << RECALL_EOF
+OVERRIDE — MANDATORY ACTION REQUIRED (from Recall plugin):
 
-with open('${OUTPUT_FILE}') as f:
-   content = f.read()
+A detailed pre-compaction transcript has been prepared at:
+${OUTPUT_FILE}
 
-# Build the instructions + transcript content
-context = '''=== RECALL: FULL PRE-COMPACTION TRANSCRIPT ===
+This file contains the COMPLETE conversation from before compaction — every user message,
+every assistant response, every tool call, every file touched. It is FAR more detailed
+than the compaction summary above.
 
-The following is the COMPLETE conversation from before compaction — every user message,
-every assistant response, every file touched. This is far more detailed than the
-compaction summary above.
-
-After reading this transcript, do ALL of the following before resuming work:
+You MUST use the Read tool to read this file IN FULL before doing anything else.
+Then do ALL of the following:
 (1) UNDERSTAND the conversation: What was the main goal? What was the last pending task?
-(2) RE-READ relevant files: Identify files needed for pending work from the FILES TOUCHED
-    section and conversation context. Re-read code/config files being actively worked on.
-(3) RE-LOAD skills: Check the === SKILLS LOADED === section. Re-load any skills needed
-    for the pending work with /skillname.
-(4) CONTINUE working on the pending task. If nothing is pending, briefly summarize what
-    was accomplished and ask the user what to do next.
-Do NOT present a formal session-resume summary — just seamlessly continue the work.
-
-''' + content
-
-output = {
-   'hookSpecificOutput': {
-      'hookEventName': 'SessionStart',
-      'additionalContext': context
-   }
-}
-
-json.dump(output, sys.stdout)
-" 2>/dev/null
+(2) RE-READ relevant files needed for pending work (from the FILES TOUCHED section).
+(3) RE-LOAD skills from the === SKILLS LOADED === section if needed.
+(4) CONTINUE working on the pending task seamlessly. Do NOT present a formal summary.
+RECALL_EOF
 
 exit 0
