@@ -850,60 +850,6 @@ def main():
    compression = (1 - output_bytes / total_bytes) * 100
    est_tokens = estimate_tokens(output)
 
-   # If output exceeds 25K tokens, append summarization instructions
-   if est_tokens > 25000:
-      script_dir = str(Path(__file__).resolve().parent)
-      # Use session ID as unique suffix to avoid race conditions between parallel agents
-      entries_dir = f"/tmp/recall-entries-{session_id[:8]}"
-      output += f"""
-
-=== NEEDS SUMMARIZATION ===
-This output is ~{est_tokens:,} tokens which exceeds the 25,000 token Read limit.
-Before reading this file, launch a **Haiku** subagent to summarize it.
-
-Subagent prompt:
----
-You are summarizing a recall transcript to reduce its size.
-Do NOT write Python scripts. Use only the Read, Write, and Bash tools directly.
-
-Scripts directory: {script_dir}
-Entries directory: {entries_dir}
-File to summarize: {{FILE_PATH}}
-
-Step 1: Run the extract script to identify messages that need summarization:
-  python3 {script_dir}/extract-longest.py {{FILE_PATH}} {entries_dir}
-
-This creates {entries_dir}/ with .md files. Each has YAML frontmatter
-with: start_line, end_line, tokens, kind (user/bot), and target_words.
-
-Step 2: Process all .md files in {entries_dir}/ in batches of 5:
-  a) Read 5 files in parallel (5 parallel Read tool calls in one message).
-  b) For each file: summarize the content below the "---" frontmatter.
-     Keep the YAML frontmatter EXACTLY as-is (do NOT modify any field).
-
-     CRITICAL — target_words is a HARD LIMIT, not a suggestion:
-     The target_words field in the frontmatter is the MAXIMUM word count
-     for your summary. You MUST compress the content to fit within this
-     limit. If target_words is 100, your summary must be ≤100 words.
-     Count your words before writing. If too long, cut further.
-
-     What to keep: key decisions, final outcomes, file paths, commands run.
-     What to cut: explanations, reasoning, repetition, tables, code blocks,
-     intermediate steps, verbose descriptions. Be aggressive — one sentence
-     per topic is often enough. NEVER produce an empty summary.
-
-  c) Write all 5 files back in parallel (5 parallel Write tool calls).
-  d) Repeat for the next batch of 5 until all files are done.
-
-Step 3: Apply all summarized messages back into the transcript:
-  python3 {script_dir}/apply-summaries.py {{FILE_PATH}} {entries_dir}
-
-Step 4: Report the new token count:
-  python3 -c "f=open('{{FILE_PATH}}','rb');b=f.read();print(f'Tokens: ~{{int(len(b)/2.2):,}}')"
-
-Done. Do NOT run additional passes or iterations. One pass is sufficient.
----"""
-
    print(
       f"Condensed: {output_bytes:,} bytes (~{est_tokens:,} tokens)", file=sys.stderr
    )

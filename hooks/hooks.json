@@ -1,0 +1,28 @@
+{
+  "description": "Recall: automatic context recovery after compaction. PreCompact generates the transcript, SessionStart injects it into context.",
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/recall/scripts/pre-compact.sh",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/recall/scripts/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

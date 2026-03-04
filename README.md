@@ -20,13 +20,13 @@ All while achieving **99%+ compression** by stripping tool results, thinking blo
 
 ### Use Case 1: Automatic Recovery After Compaction
 
-This is the primary, "set it and forget it" mode. A `SessionStart` hook fires after every compaction, automatically:
+This is the primary, "set it and forget it" mode. Two hooks work together:
 
-1. Parses the full session transcript
-2. Generates a detailed context file
-3. Tells Claude to read it immediately
+1. **PreCompact hook** — fires before compaction, parses the full transcript and prepares the context file. For very large sessions (>25K tokens), it launches parallel `claude -p --model haiku` calls to intelligently compress the biggest messages while preserving key details.
 
-**You do nothing.** Claude seamlessly continues your work with full context — no repeated explanations, no lost decisions. If the transcript is very large (>25K tokens), an adaptive summarization pipeline automatically compresses the largest messages while preserving the most recent exchange verbatim.
+2. **SessionStart hook** — fires after compaction, injects the prepared transcript directly into Claude's context via `additionalContext`. No file reading needed — the content is immediately available.
+
+**You do nothing.** Claude seamlessly continues your work with full context — no repeated explanations, no lost decisions.
 
 ### Use Case 2: Manual Session Recall
 
@@ -56,28 +56,40 @@ Start Claude Code (`claude`), then run these commands inside it:
 /plugin install recall
 ```
 
+Both hooks (PreCompact + SessionStart) are registered automatically. No manual configuration needed.
+
 ### Manual
 
 ```
 /plugin install https://github.com/FlineDev/Recall.git
 ```
 
-## Setup
+### Without Plugin System
 
-After installation, you need to configure the **compaction hook** for Use Case 1 (automatic recovery). Without it, only the manual `/recall <id>` command works.
-
-Add this to your project's `.claude/settings.json` or global `~/.claude/settings.json`:
+If you prefer not to use the plugin system, you can configure the hooks manually in your project's `.claude/settings.json` or global `~/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<path-to>/recall/scripts/pre-compact.sh",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "compact",
         "hooks": [
           {
             "type": "command",
-            "command": "<plugin-path>/scripts/post-compact-hook.sh"
+            "command": "<path-to>/recall/scripts/session-start.sh"
           }
         ]
       }
@@ -86,33 +98,28 @@ Add this to your project's `.claude/settings.json` or global `~/.claude/settings
 }
 ```
 
-Replace `<plugin-path>` with the absolute path to the installed plugin. To find it:
-
-```bash
-# The plugin is typically installed at:
-ls ~/.claude/plugins/recall/
-```
-
-The hook script uses `SCRIPT_DIR` relative to itself, so it finds all other scripts automatically.
-
-### What the Hook Does
-
-1. Receives the `session_id` from Claude Code via stdin (reliable even with parallel sessions)
-2. Runs the parser on the current session's transcript
-3. Outputs a message telling Claude to read the detailed context file
-4. If the file exceeds 25K tokens, instructs Claude to run adaptive summarization first
+Replace `<path-to>` with the absolute path to the `skills` directory.
 
 ## How It Works
 
 ### The Pipeline
 
-Recall uses a 3-script pipeline:
+Two hooks coordinate the recovery:
+
+| Hook | When | What it does |
+|------|------|-------------|
+| `pre-compact.sh` | Before compaction | Parses transcript, summarizes if >25K tokens |
+| `session-start.sh` | After compaction | Injects prepared content into Claude's context |
+
+### Summarization Pipeline (for large sessions)
+
+When the transcript exceeds 25K tokens, `summarize.sh` runs automatically:
 
 | Script | Purpose |
 |--------|---------|
-| `parse-transcript.py` | Parses the JSONL transcript into structured markdown |
-| `extract-longest.py` | Identifies large messages for summarization (only for >25K token transcripts) |
-| `apply-summaries.py` | Patches summarized messages back into the transcript |
+| `extract-longest.py` | Identifies large messages using iterative partitioning |
+| `claude -p --model haiku` | Summarizes each message (up to 5 in parallel) |
+| `apply-summaries.py` | Patches summaries back into the transcript |
 
 ### What's Preserved vs. Stripped
 
@@ -126,19 +133,19 @@ Recall uses a 3-script pipeline:
 
 ### Adaptive Summarization
 
-For very long sessions (>25K tokens after initial compression), Recall uses an iterative partitioning algorithm:
+For very long sessions, Recall uses an iterative partitioning algorithm:
 
 1. **Freeze** the last exchange (most recent user message + response) — always kept verbatim
 2. **Calculate** the remaining token budget (target: 15K tokens total)
 3. **Partition** messages iteratively: freeze short messages (below average), keep large ones as candidates
-4. **Summarize** candidates using a Haiku subagent with proportional word targets
+4. **Summarize** candidates using parallel `claude -p --model haiku` calls with proportional word targets
 5. **Patch** the summaries back into the transcript
 
 This ensures the most recent context is always complete while compressing older, larger messages proportionally.
 
 ## Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (v2.0.76+ recommended)
 - Python 3 (pre-installed on macOS)
 
 ## Technical Details
@@ -148,3 +155,4 @@ This ensures the most recent context is always complete while compressing older,
 - **Message cap:** Sessions exceeding 100 messages (50 exchanges) are truncated to the most recent 100
 - **Token estimation:** `byte_count / 2.2` — calibrated from empirical data (~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin), never guessed from filesystem timestamps
+- **Parallel summarization:** Up to 5 concurrent `claude -p` calls, using existing Claude Code authentication
