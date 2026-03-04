@@ -1,0 +1,13 @@
+{
+  "name": "recall",
+  "version": "0.1.0",
+  "description": "Never lose context in Claude Code — automatic recovery after compaction and manual session recall",
+  "author": {
+    "name": "Cihat Gündüz",
+    "url": "https://fline.dev"
+  },
+  "homepage": "https://github.com/FlineDev/Recall",
+  "repository": "https://github.com/FlineDev/Recall",
+  "license": "MIT",
+  "keywords": ["recall", "session", "context", "compaction", "resume", "transcript", "recovery"]
+}
