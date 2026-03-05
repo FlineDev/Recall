@@ -831,6 +831,48 @@ def main():
    # Merge consecutive tool-only assistant entries
    entries = merge_consecutive_tools(entries)
 
+   # Split oversized bot messages into chunks of MAX_ENTRIES_PER_MESSAGE.
+   # When Claude works autonomously, a single "bot message" (everything between
+   # two user messages) can have hundreds of entries. This makes the 100-message
+   # cap ineffective. By splitting large bot messages, each chunk counts as a
+   # separate message toward the cap.
+   MAX_ENTRIES_PER_MESSAGE = 10
+   split_entries = []
+   i = 0
+   while i < len(entries):
+      entry = entries[i]
+      if entry.get("role") == "user":
+         split_entries.append(entry)
+         # Collect all consecutive non-user entries (the "bot message")
+         bot_entries = []
+         j = i + 1
+         while j < len(entries) and entries[j].get("role") != "user":
+            if entries[j].get("role") in ("assistant", "compaction"):
+               bot_entries.append(entries[j])
+            j += 1
+         # Split bot entries into chunks of MAX_ENTRIES_PER_MESSAGE
+         if len(bot_entries) > MAX_ENTRIES_PER_MESSAGE:
+            for chunk_start in range(0, len(bot_entries), MAX_ENTRIES_PER_MESSAGE):
+               chunk = bot_entries[chunk_start:chunk_start + MAX_ENTRIES_PER_MESSAGE]
+               split_entries.extend(chunk)
+               # Insert a synthetic user marker between chunks (except after the last)
+               if chunk_start + MAX_ENTRIES_PER_MESSAGE < len(bot_entries):
+                  split_entries.append({
+                     "role": "user",
+                     "texts": ["[...continued autonomous work...]"],
+                     "timestamp": "",
+                     "tool_results_count": 0,
+                     "tool_results_bytes": 0,
+                  })
+         else:
+            split_entries.extend(bot_entries)
+         i = j
+      else:
+         # Orphan non-user entry at the start (before any user message)
+         split_entries.append(entry)
+         i += 1
+   entries = split_entries
+
    # Cap at MAX_MESSAGES to keep output manageable for very long sessions.
    # A "message" is either a user message or a bot message (1 exchange = 2 messages).
    # 100 messages = 50 exchanges. We count by user messages (each starts an exchange).

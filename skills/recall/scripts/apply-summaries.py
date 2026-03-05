@@ -84,9 +84,20 @@ def main():
    # Sort by start_line DESCENDING — replace from bottom to top
    entries.sort(key=lambda e: e[0]["start_line"], reverse=True)
 
+   applied = 0
+   skipped = 0
    for metadata, summary in entries:
       start = metadata["start_line"] - 1  # 0-indexed
       end = metadata["end_line"]  # exclusive
+
+      # Safety check: skip if summary is not actually shorter than original.
+      # This happens when claude -p fails silently and the entry file keeps
+      # its original content — applying it would make the file larger.
+      original_tokens = metadata.get("tokens", 0)
+      summary_tokens = estimate_tokens(summary)
+      if summary_tokens >= original_tokens * 0.9:
+         skipped += 1
+         continue
 
       # Collect all entry headers from the range (bot messages may span TOOLS + ASSISTANT)
       headers = []
@@ -100,6 +111,7 @@ def main():
       # Build replacement: all headers + [Summarized] summary + blank line
       replacement = "\n".join(headers) + f"\n[Summarized] {summary}\n\n"
       lines[start:end] = [replacement]
+      applied += 1
 
    # Update token estimate in STATISTICS section
    full_text = "".join(lines)
@@ -123,7 +135,8 @@ def main():
       f.write(final_text)
 
    print(
-      f"Applied {len(entries)} summaries. New token estimate: ~{new_tokens:,}",
+      f"Applied {applied} summaries ({skipped} skipped — not shorter). "
+      f"New token estimate: ~{new_tokens:,}",
       file=sys.stderr,
    )
 

@@ -11,6 +11,10 @@
 
 set -e
 
+# Allow claude -p to run from within a Claude Code session.
+# Without this, claude -p refuses to start ("nested sessions").
+unset CLAUDECODE
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TRANSCRIPT="$1"
 SESSION_ID="$2"
