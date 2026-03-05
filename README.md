@@ -20,13 +20,17 @@ All while achieving **99%+ compression** by stripping tool results, thinking blo
 
 ### Use Case 1: Automatic Recovery After Compaction
 
-This is the primary, "set it and forget it" mode. Two hooks work together:
+This is the primary, "set it and forget it" mode. Two hooks + a CLAUDE.md reference work together:
 
-1. **PreCompact hook** — fires before compaction, parses the full transcript and prepares the context file. For very large sessions (>25K tokens), it launches parallel `claude -p --model haiku` calls to intelligently compress the biggest messages while preserving key details.
+1. **PreCompact hook** — fires before compaction, parses the full transcript and writes it to `.claude/recall-context.md` in your project. For very large sessions (>25K tokens), it launches parallel `claude -p --model haiku` calls to intelligently compress the biggest messages while preserving key details.
 
-2. **SessionStart hook** — fires after compaction, injects the prepared transcript directly into Claude's context via `additionalContext`. No file reading needed — the content is immediately available.
+2. **CLAUDE.md `@`-reference** — your project's CLAUDE.md includes `@.claude/recall-context.md`. After compaction, Claude Code re-reads CLAUDE.md from disk and automatically pulls in the recall content.
+
+3. **SessionStart hook** — fires after compaction (and on new sessions), cleans up the recall file to prevent stale content from persisting.
 
 **You do nothing.** Claude seamlessly continues your work with full context — no repeated explanations, no lost decisions.
+
+**Setup requirement:** Add `@.claude/recall-context.md` as the first line of your project's `CLAUDE.md`, and add `.claude/recall-context.md` to your `.gitignore`.
 
 ### Use Case 2: Manual Session Recall
 

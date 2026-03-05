@@ -1,5 +1,5 @@
 {
-  "description": "Recall: automatic context recovery after compaction. PreCompact generates the transcript, SessionStart injects it into context.",
+  "description": "Recall: automatic context recovery after compaction. PreCompact generates the transcript into .claude/recall-context.md (pulled in via CLAUDE.md @-reference). SessionStart cleans up the file.",
   "hooks": {
     "PreCompact": [
       {
@@ -15,7 +15,7 @@
     ],
     "SessionStart": [
       {
-        "matcher": "compact",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
