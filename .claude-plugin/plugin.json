@@ -1,6 +1,6 @@
 {
   "name": "recall",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Never lose context in Claude Code — automatic recovery after compaction and manual session recall",
   "author": {
     "name": "Cihat Gündüz",

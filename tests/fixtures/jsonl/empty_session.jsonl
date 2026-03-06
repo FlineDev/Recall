@@ -1,0 +1,6 @@
+{"type": "file-history-snapshot", "messageId": "00000000-0000-0000-0000-000000001401", "snapshot": {"messageId": "00000000-0000-0000-0000-000000001401", "trackedFileBackups": {}, "timestamp": "2026-01-15T10:00:00"}}
+{"type": "progress", "data": {"type": "bash_progress", "output": "", "elapsedTimeSeconds": 1}}
+{"type": "progress", "data": {"type": "bash_progress", "output": "", "elapsedTimeSeconds": 3}}
+{"type": "file-history-snapshot", "messageId": "00000000-0000-0000-0000-000000001402", "snapshot": {"messageId": "00000000-0000-0000-0000-000000001402", "trackedFileBackups": {}, "timestamp": "2026-01-15T10:05:00"}}
+{"type": "progress", "data": {"type": "bash_progress", "output": "", "elapsedTimeSeconds": 2}}
+{"type": "progress", "data": {"type": "bash_progress", "output": "", "elapsedTimeSeconds": 4}}
