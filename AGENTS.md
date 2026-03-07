@@ -21,6 +21,8 @@ Recall/
 │   ├── test_parse_session.py
 │   ├── test_parse_postprocess.py
 │   └── test_condense_tail.py     # Tests for split/combine logic
+├── commands/
+│   └── setup.md           # /recall:setup — per-project configuration
 ├── hooks/                 # Plugin system hook definitions
 ├── APPROACH.md            # Design decisions and architecture
 └── README.md              # User-facing documentation

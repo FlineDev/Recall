@@ -30,7 +30,7 @@ This is the primary, "set it and forget it" mode. Two hooks + a CLAUDE.md refere
 
 **You do nothing.** Claude seamlessly continues your work with full context — no repeated explanations, no lost decisions.
 
-**Setup requirement:** Add `@.claude/recall-context.md` as the first line of your project's `CLAUDE.md`, and add `.claude/recall-context.md` to your `.gitignore`.
+**One-time setup per project:** Run `/recall:setup` to configure the CLAUDE.md reference and .gitignore entry (see Installation).
 
 ### Use Case 2: Manual Session Recall
 
@@ -60,13 +60,28 @@ Start Claude Code (`claude`), then run these commands inside it:
 /plugin install recall
 ```
 
-Both hooks (PreCompact + SessionStart) are registered automatically. No manual configuration needed.
+Both hooks (PreCompact + SessionStart) are registered automatically.
+
+Then, in each project where you want automatic recovery, run the setup command:
+
+```
+/recall:setup
+```
+
+This configures the current project by:
+- Creating `.claude/recall-context.md` (the auto-generated context file)
+- Adding `@.claude/recall-context.md` to the first line of `CLAUDE.md` (creates it if needed)
+- Adding `.claude/recall-context.md` to `.gitignore`
+
+You only need to run setup once per project. After that, everything is automatic.
 
 ### Manual
 
 ```
 /plugin install https://github.com/FlineDev/Recall.git
 ```
+
+Then run `/recall:setup` in each project.
 
 ### Without Plugin System
 
@@ -89,7 +104,7 @@ If you prefer not to use the plugin system, you can configure the hooks manually
     ],
     "SessionStart": [
       {
-        "matcher": "compact",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -103,6 +118,11 @@ If you prefer not to use the plugin system, you can configure the hooks manually
 ```
 
 Replace `<path-to>` with the absolute path to the `skills` directory.
+
+Then manually perform the setup steps:
+1. Create `.claude/recall-context.md` with placeholder content
+2. Add `@.claude/recall-context.md` as the first line of your `CLAUDE.md`
+3. Add `.claude/recall-context.md` to your `.gitignore`
 
 ## How It Works
 
