@@ -13,9 +13,32 @@ Full transcript: recall-943494ae.md
 
 Then it seamlessly continues your work — no repeated explanations, no lost decisions, no "where were we?"
 
-Without Recall, compaction produces a brief summary that loses: the exact wording of your requests, which files were touched and why, what approaches were tried and failed, and what work was still pending.
+## Why Recall Exists
 
-With Recall, **99%+ of the noise is stripped** (tool results, thinking blocks, system reminders) while preserving:
+Claude Code's 200K context window sounds large, but **~20-25% is used by system context** (tools, system prompts, CLAUDE.md). Auto-compaction kicks in at ~85% usage. When it does, your entire conversation — every message, every decision, every file you touched — is compressed into a **~2,000-word structured summary**. That's less than 1% of your original context.
+
+The summary captures the gist. But it loses the details that matter:
+
+| Lost after compaction | Why it matters |
+|---|---|
+| Exact user instructions | Claude re-asks questions you already answered |
+| Failed approaches & why they failed | Claude retries things that didn't work |
+| Architecture decisions & rationale | Claude makes different choices than what you agreed on |
+| Intermediate debugging steps | Bugs get re-investigated from scratch |
+| File edit history & frequency | Claude doesn't know which files it already changed |
+| Code review feedback & corrections | Your preferences are forgotten |
+
+### See the difference
+
+Both examples below show the same fictional session — adding recurring tasks to a Swift app:
+
+- **[Compaction summary](examples/compaction-summary.md)** (~2,000 words) — What Claude Code produces by default. Structured into Analysis + 9 numbered sections. Preserves the topic and key files, but not the details: that you debated UTC vs. local-time storage and chose UTC, that weekday/weekend presets were added, or that a scheduling bug was caused by computing from `Date()` instead of `scheduledDate`.
+
+- **[Recall transcript](examples/recall-transcript.md)** (~18K tokens) — What Recall produces. Every user message verbatim, every assistant response, every tool call summarized. The full conversation arc with decisions, bugs, fixes, and rationale — Claude continues as if no compaction happened.
+
+### What Recall preserves
+
+**99%+ of noise stripped** (tool results, thinking blocks, system reminders) while keeping:
 
 - Every user message — verbatim
 - Every assistant response — verbatim
