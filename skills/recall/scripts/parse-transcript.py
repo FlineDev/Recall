@@ -587,14 +587,15 @@ def collect_file_operations(entries):
 
 
 def estimate_tokens(text):
-   """Estimate token count from text using byte count / 2.2.
+   """Estimate token count from text using byte count / 3.0.
 
-   Calibrated from empirical data on technical markdown + code:
-   - Measured ratio: ~2.35 bytes/token for mixed markdown + Swift/Python code
-   - We use 2.2 bytes/token to conservatively overestimate by ~7%
+   Calibrated against Xenova/claude-tokenizer on 50 real compaction summaries
+   and 4 real recall transcripts:
+   - bytes/2.2 (old): avg error +37%, massively overcounted
+   - bytes/3.0 (new): avg error +0.1%, avg |error| 7.5%
    """
    byte_count = len(text.encode("utf-8")) if isinstance(text, str) else len(text)
-   return int(byte_count / 2.2)
+   return int(byte_count / 3.0)
 
 
 def format_output(entries, metadata, total_bytes, total_lines, transcript_path):

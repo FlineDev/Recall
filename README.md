@@ -4,7 +4,7 @@
 
 Claude Code's 200K context sounds like a lot, but ~20-25% goes to system overhead (tools, prompts, CLAUDE.md), and auto-compaction triggers at ~85%. That leaves roughly 120-130K usable tokens — and the 1M tier isn't 5x more, it's effectively **~8x** the usable context (since overhead is fixed). Recall bridges this gap by making the 200K window renewable: when context runs out, start a new session and restore everything that matters in seconds.
 
-Without Recall, compaction compresses your entire conversation into a ~1,500-word summary — less than 1% of your original context. With Recall, Claude continues as if nothing happened.
+Without Recall, compaction compresses your entire conversation into a ~3,500-token summary — less than 1% of your original context. Recall restores **4-5x more detail** (15-18K tokens), giving Claude the full conversation arc to continue where you left off.
 
 ## Why Recall Exists
 
@@ -21,7 +21,7 @@ Claude Code's built-in compaction summary preserves the topic, but loses the det
 
 ### What Recall preserves
 
-**99%+ of noise stripped** (tool results, thinking blocks, system reminders) while keeping:
+Recall parses the **complete session transcript** — including context from before any previous compactions in the same session. Even after multiple compactions, nothing is permanently lost. 99%+ of noise is stripped (tool results, thinking blocks, system reminders) while keeping:
 
 - Every user message — verbatim
 - Every assistant response — verbatim
@@ -33,43 +33,9 @@ Claude Code's built-in compaction summary preserves the topic, but loses the det
 
 Both examples below show the same fictional session — adding recurring tasks to a Swift app:
 
-- **[Compaction summary](examples/compaction-summary.md)** (~1,500 words) — What Claude Code produces by default. Preserves the topic and key files, but not the details: that you debated UTC vs. local-time storage and chose UTC, that weekday/weekend presets were added, or that a scheduling bug was caused by computing from `Date()` instead of `scheduledDate`.
+- **[Compaction summary](examples/compaction-summary.md)** (~3,500 tokens) — What Claude Code produces by default. Preserves the topic and key files, but not the details: that you debated UTC vs. local-time storage and chose UTC, that weekday/weekend presets were added, or that a scheduling bug was caused by computing from `Date()` instead of `scheduledDate`.
 
-- **[Recall transcript](examples/recall-transcript.md)** (~18K tokens) — What Recall produces. Every user message verbatim, every assistant response, every tool call summarized. The full conversation arc with decisions, bugs, fixes, and rationale.
-
-## How It Works — Two Modes
-
-Recall covers both ways people use Claude Code:
-
-### With auto-compaction (default)
-
-This is the "set it and forget it" mode. You don't change anything about how you work. When auto-compaction triggers — or when you manually run `/compact` — Recall automatically:
-
-1. Parses the full session transcript before compaction
-2. Writes the result to `.claude/recall-context.md`
-3. After compaction, Claude re-reads CLAUDE.md which pulls in the recall content via `@`-reference
-4. Cleans up the file on next session start (prevents stale content)
-
-**You do nothing.** Claude prints a stats line and continues where it left off.
-
-### Without auto-compaction (power mode)
-
-This is the mode Recall was designed for. Turn off auto-compaction in Claude Code settings and use **100% of your 200K context window** — no more leaving the last 15% unused out of fear that compaction will erase your progress.
-
-When the context fills up, Claude Code exits and prints your session ID:
-
-```
-Resume this session with:
-claude --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890
-```
-
-Instead of `--resume` (which just replays the compressed summary), start a fresh session and use Recall:
-
-```
-/recall a1b2c3d4-e5f6-7890-abcd-ef1234567890
-```
-
-The session ID is printed right above where your new `claude` session starts — just copy it. Within seconds, Claude has the full conversation history and continues exactly where you left off. Technically a new session, but with all the context that matters.
+- **[Recall transcript](examples/recall-transcript.md)** (~15,000 tokens) — What Recall produces. Every user message verbatim, every assistant response, every tool call summarized. The full conversation arc with decisions, bugs, fixes, and rationale.
 
 ## Installation
 
@@ -103,6 +69,11 @@ This does three things:
 3. Adds `.claude/recall-context.md` to `.gitignore`
 
 **That's it.** Compaction recovery is now automatic. You'll never need to think about it again.
+
+### Requirements
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (v2.0.76+ recommended)
+- Python 3 (pre-installed on macOS)
 
 <details>
 <summary>Alternative: Manual setup (without plugin system)</summary>
@@ -148,17 +119,51 @@ Then manually:
 
 </details>
 
+## Usage
+
+Recall covers both ways people use Claude Code:
+
+### With auto-compaction (default)
+
+This is the "set it and forget it" mode. You don't change anything about how you work. When auto-compaction triggers — or when you manually run `/compact` — Recall kicks in automatically.
+
+**You do nothing.** Claude gets both its built-in compaction summary (~3,500 tokens) *and* Recall's detailed transcript (15-18K tokens) — 4-5x more context than compaction alone. Claude prints a stats line and continues where it left off:
+
+```
+Recall loaded: ~16,440 tokens (25% verbatim, 72% summarized)
+Full transcript: recall-943494ae.md
+```
+
+### Without auto-compaction (power mode)
+
+This is the mode Recall was designed for. Turn off auto-compaction in Claude Code settings and use **100% of your 200K context window** — no more leaving the last 15% unused out of fear that compaction will erase your progress.
+
+When the context fills up, Claude Code exits and prints your session ID:
+
+```
+Resume this session with:
+claude --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+Instead of `--resume` (which just replays the compressed summary), start a fresh session and use Recall:
+
+```
+/recall a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+The session ID is printed right above where your new `claude` session starts — just copy it. Within seconds, Claude has the full conversation history and continues exactly where you left off. Technically a new session, but with all the context that matters.
+
+In power mode you benefit even more: there's no compaction summary at all, so Claude's only context is Recall's 15-18K token transcript — every token spent on detail, none wasted on a lossy summary. The output is always capped below 20K tokens, using only ~10% of your fresh context window.
+
 ## How It Works
 
-### Two Data Sources
+### Transcript Parsing
 
-Recall hooks into Claude Code's lifecycle at two points:
+Recall hooks into Claude Code's lifecycle via a **PreCompact hook** that fires before every compaction (auto or manual). It reads the raw JSONL session transcript — the complete, append-only log that Claude Code maintains at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`. This means Recall always has access to the **full session history**, even after multiple compactions in the same session.
 
-1. **PreCompact hook** — Fires before every compaction (auto or manual `/compact`). Reads the raw JSONL session transcript from `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`, strips 99% of noise (tool result contents, thinking blocks, system reminders, progress events), and produces a structured markdown transcript. The result is written to both `/tmp/recall-<session-id>.md` (persistent reference) and `.claude/recall-context.md` (for automatic injection).
+The parser strips 99% of noise (tool result contents, thinking blocks, system reminders, progress events) and produces a structured markdown transcript. The result is written to both `/tmp/recall-<session-id>.md` (persistent reference) and `.claude/recall-context.md` (for automatic injection via CLAUDE.md `@`-reference).
 
-2. **CLAUDE.md `@`-reference** — After compaction, Claude Code re-reads your CLAUDE.md from disk. Because `@.claude/recall-context.md` is the first line, the recall content is pulled into Claude's context automatically — alongside the compaction summary, giving Claude far richer context to continue from.
-
-A **SessionStart hook** cleans up `.claude/recall-context.md` on every new session start, preventing stale content from a previous session from leaking into the next one.
+A **SessionStart hook** cleans up `.claude/recall-context.md` on every new session start, preventing stale content from leaking into the next session.
 
 ### Condensation (for large sessions)
 
@@ -169,15 +174,10 @@ When the parsed transcript exceeds 20K tokens, `condense-tail.py` splits it:
 | Recent exchanges | ~15K tokens | Kept verbatim (most recent context matters most) |
 | Older context | Up to 85K tokens | Summarized by a single `claude -p --model sonnet` call (~30-40s) |
 
-The result targets 15-20K tokens (~10% of Claude Code's 200K context window). For shorter sessions (<20K tokens), the full transcript is kept as-is with no API call. The Sonnet call uses your existing Claude Code authentication — no additional API keys needed.
+The result is always between 15-18K tokens on average, capped below 20K (~10% of Claude Code's 200K context window). For shorter sessions (<20K tokens), the full transcript is kept as-is with no API call. The Sonnet call uses your existing Claude Code authentication — no additional API keys needed.
 
 ### Where Files Live
 
 - **Raw transcripts:** `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl` — Claude Code's append-only session log
 - **Recall output:** `/tmp/recall-<session-id>.md` — persists until reboot, useful for manual `/recall` across sessions
 - **Auto-injection:** `.claude/recall-context.md` — written by PreCompact, read via CLAUDE.md `@`-reference, cleaned by SessionStart
-
-## Requirements
-
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (v2.0.76+ recommended)
-- Python 3 (pre-installed on macOS)
