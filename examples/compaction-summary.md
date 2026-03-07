@@ -1,8 +1,8 @@
 # What Claude Code's Built-in Compaction Produces
 
-This is a representative example of what Claude sees after auto-compaction.
-The ~2,000-word summary replaces an entire session of work — every message,
-every decision, every file change compressed into a single structured block.
+This is a representative example of what Claude sees after auto-compaction — a
+~2,000-word structured summary that replaces the entire session. Every message,
+every decision, every file change compressed into a single block.
 
 For comparison, see what Recall preserves: [recall-transcript.md](recall-transcript.md)
 
