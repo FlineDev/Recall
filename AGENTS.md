@@ -33,7 +33,7 @@ cd /Users/jeehut/Developer/Indie/Plugins/Recall
 python3 -m pytest tests/ -v
 ```
 
-All 164 tests should pass. If pytest is not installed: `pipx install pytest`.
+All 170 tests should pass. If pytest is not installed: `pipx install pytest`.
 
 ## When to Run Tests
 

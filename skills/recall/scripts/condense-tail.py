@@ -15,6 +15,7 @@ Usage:
   python3 condense-tail.py combine <input.md> <session-id>
 """
 
+import json
 import os
 import re
 import sys
@@ -22,7 +23,7 @@ import sys
 # ── Constants ─────────────────────────────────────────────────────────────
 THRESHOLD_TOKENS = 20_000     # Only condense if above this
 TAIL_TARGET_TOKENS = 15_000   # Keep ~15K tokens of recent exchanges verbatim
-OLDER_CAP_TOKENS = 50_000     # Max tokens of older context to send to Sonnet
+OLDER_CAP_TOKENS = 85_000     # Max tokens of older context to send to Sonnet
 SUMMARY_TARGET_WORDS = 1_800  # ~2,500 tokens at 1.4 tokens/word
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -166,31 +167,54 @@ STRUCTURE:
 Summarize the following older conversation context:"""
 
 
+def write_stats(prefix, stats):
+   """Write stats JSON to /tmp/recall-stats-<prefix>.json."""
+   stats_path = f"/tmp/recall-stats-{prefix}.json"
+   with open(stats_path, "w") as f:
+      json.dump(stats, f, indent=2)
+   return stats_path
+
+
 def cmd_split(input_path, session_id):
    """Check if condensation is needed and split into files.
 
    Exit codes:
      0 — condensation needed, files written
      2 — no condensation needed (≤ 20K tokens)
+
+   Always writes /tmp/recall-stats-<prefix>.json with stats.
    """
+   prefix = session_id[:8]
+
    with open(input_path) as f:
       text = f.read()
 
    tokens = parse_token_estimate(text)
    print(f"Transcript tokens: {tokens:,}", file=sys.stderr)
 
+   # Count total exchanges for stats (even when not condensing)
+   all_lines = text.split("\n")
+   all_lines_nl = [line + "\n" for line in all_lines]
+   if text and not text.endswith("\n"):
+      all_lines_nl[-1] = all_lines_nl[-1].rstrip("\n")
+   conv_start = find_conversation_start(all_lines_nl)
+   total_exchanges = len(parse_exchanges(all_lines_nl[conv_start:]))
+
    if tokens <= THRESHOLD_TOKENS:
       print(f"Under {THRESHOLD_TOKENS:,} tokens — no condensation needed.", file=sys.stderr)
+      write_stats(prefix, {
+         "condensed": False,
+         "original_tokens": tokens,
+         "final_tokens": tokens,
+         "total_exchanges": total_exchanges,
+         "tail_exchanges": total_exchanges,
+         "verbatim_pct": 100,
+         "summarized_pct": 0,
+         "dropped_pct": 0,
+      })
       return 2
 
-   lines = text.split("\n")
-   # Keep lines as newline-terminated for joining later
-   lines = [line + "\n" for line in lines]
-   # Fix last line (don't add extra newline if text didn't end with one)
-   if text and not text.endswith("\n"):
-      lines[-1] = lines[-1].rstrip("\n")
-
-   conv_start = find_conversation_start(lines)
+   lines = all_lines_nl
    header_lines = lines[:conv_start]
    conversation_lines = lines[conv_start:]
 
@@ -200,28 +224,48 @@ def cmd_split(input_path, session_id):
 
    if not older_lines:
       print("All exchanges fit in tail — no condensation needed.", file=sys.stderr)
+      write_stats(prefix, {
+         "condensed": False,
+         "original_tokens": tokens,
+         "final_tokens": tokens,
+         "total_exchanges": total_exchanges,
+         "tail_exchanges": total_exchanges,
+         "verbatim_pct": 100,
+         "summarized_pct": 0,
+         "dropped_pct": 0,
+      })
       return 2
 
    older_text = "".join(older_lines)
    tail_text = "".join(tail_lines)
    older_tokens = estimate_tokens(older_text)
    tail_tokens = estimate_tokens(tail_text)
+   tail_exchanges = len(parse_exchanges(tail_lines))
+   older_exchanges_list = parse_exchanges(older_lines)
+   older_exchange_count = len(older_exchanges_list)
+   dropped_tokens = 0
 
    # Cap older context at OLDER_CAP_TOKENS
    if older_tokens > OLDER_CAP_TOKENS:
-      # Re-parse and take the most recent exchanges that fit
-      older_exchanges = parse_exchanges(older_lines)
+      uncapped_older_tokens = older_tokens
       capped_tokens = 0
-      cap_idx = len(older_exchanges)
-      for i in range(len(older_exchanges) - 1, -1, -1):
-         if capped_tokens + older_exchanges[i]["tokens"] > OLDER_CAP_TOKENS:
+      cap_idx = len(older_exchanges_list)
+      for i in range(len(older_exchanges_list) - 1, -1, -1):
+         if capped_tokens + older_exchanges_list[i]["tokens"] > OLDER_CAP_TOKENS:
             break
-         capped_tokens += older_exchanges[i]["tokens"]
+         capped_tokens += older_exchanges_list[i]["tokens"]
          cap_idx = i
-      if cap_idx < len(older_exchanges):
-         cap_line = older_exchanges[cap_idx]["start_idx"]
+      if cap_idx < len(older_exchanges_list):
+         cap_line = older_exchanges_list[cap_idx]["start_idx"]
          older_text = "".join(older_lines[cap_line:])
          older_tokens = estimate_tokens(older_text)
+         dropped_tokens = uncapped_older_tokens - older_tokens
+         older_exchange_count = len(older_exchanges_list) - cap_idx
+
+   # Calculate percentages based on original token count
+   verbatim_pct = round(tail_tokens / tokens * 100)
+   summarized_pct = round(older_tokens / tokens * 100)
+   dropped_pct = round(dropped_tokens / tokens * 100)
 
    print(
       f"Split: {older_tokens:,} tokens older context + {tail_tokens:,} tokens verbatim tail",
@@ -229,7 +273,6 @@ def cmd_split(input_path, session_id):
    )
 
    # Write output files
-   prefix = session_id[:8]
    older_path = f"/tmp/recall-older-{prefix}.md"
    tail_path = f"/tmp/recall-tail-{prefix}.md"
    prompt_path = f"/tmp/recall-prompt-{prefix}.txt"
@@ -240,6 +283,20 @@ def cmd_split(input_path, session_id):
       f.write(tail_text)
    with open(prompt_path, "w") as f:
       f.write(build_sonnet_prompt())
+
+   write_stats(prefix, {
+      "condensed": True,
+      "original_tokens": tokens,
+      "tail_tokens": tail_tokens,
+      "older_tokens": older_tokens,
+      "dropped_tokens": dropped_tokens,
+      "total_exchanges": total_exchanges,
+      "tail_exchanges": tail_exchanges,
+      "older_exchanges": older_exchange_count,
+      "verbatim_pct": verbatim_pct,
+      "summarized_pct": summarized_pct,
+      "dropped_pct": dropped_pct,
+   })
 
    print(f"Files written: {older_path}, {tail_path}, {prompt_path}", file=sys.stderr)
    return 0
@@ -296,9 +353,18 @@ def cmd_combine(input_path, session_id):
    with open(input_path, "w") as f:
       f.write(output)
 
+   # Update stats with final token count
+   stats_path = f"/tmp/recall-stats-{prefix}.json"
+   if os.path.exists(stats_path):
+      with open(stats_path) as f:
+         stats = json.load(f)
+      stats["final_tokens"] = new_tokens
+      with open(stats_path, "w") as f:
+         json.dump(stats, f, indent=2)
+
    print(f"Combined output: ~{new_tokens:,} tokens", file=sys.stderr)
 
-   # Clean up temp files
+   # Clean up temp files (but keep stats — pre-compact.sh needs it)
    for path in [summary_path, tail_path,
                 f"/tmp/recall-older-{prefix}.md",
                 f"/tmp/recall-prompt-{prefix}.txt"]:

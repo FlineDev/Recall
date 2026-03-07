@@ -1,5 +1,6 @@
 """Tests for condense-tail.py: split/combine logic and exchange boundary handling."""
 
+import json
 import os
 import re
 from pathlib import Path
@@ -184,6 +185,7 @@ class TestCmdSplit:
       p.write_text(transcript)
       result = condense_mod.cmd_split(str(p), "test12345678")
       assert result == 2
+      self._cleanup("test1234")
 
    def test_no_action_at_threshold(self, condense_mod, tmp_path):
       """Exactly at 20K tokens: no condensation."""
@@ -192,9 +194,22 @@ class TestCmdSplit:
       p.write_text(transcript)
       result = condense_mod.cmd_split(str(p), "test12345678")
       assert result == 2
+      self._cleanup("test1234")
+
+   def _cleanup(self, prefix, include_summary=False):
+      """Remove temp files created by cmd_split."""
+      for f in ["older", "tail", "prompt", "stats"]:
+         ext = "txt" if f == "prompt" else ("json" if f == "stats" else "md")
+         path = f"/tmp/recall-{f}-{prefix}.{ext}"
+         if os.path.exists(path):
+            os.remove(path)
+      if include_summary:
+         path = f"/tmp/recall-summary-{prefix}.md"
+         if os.path.exists(path):
+            os.remove(path)
 
    def test_split_creates_files(self, condense_mod, tmp_path):
-      """Transcript over 20K: creates older, tail, and prompt files."""
+      """Transcript over 20K: creates older, tail, prompt, and stats files."""
       transcript = make_transcript(40, tokens_per_exchange=800)
       p = tmp_path / "large.md"
       p.write_text(transcript)
@@ -203,11 +218,8 @@ class TestCmdSplit:
       assert os.path.exists("/tmp/recall-older-test1234.md")
       assert os.path.exists("/tmp/recall-tail-test1234.md")
       assert os.path.exists("/tmp/recall-prompt-test1234.txt")
-      # Cleanup
-      for f in ["older", "tail", "prompt"]:
-         path = f"/tmp/recall-{f}-test1234.{'txt' if f == 'prompt' else 'md'}"
-         if os.path.exists(path):
-            os.remove(path)
+      assert os.path.exists("/tmp/recall-stats-test1234.json")
+      self._cleanup("test1234")
 
    def test_tail_starts_at_user_header(self, condense_mod, tmp_path):
       """The tail file starts with a USER header."""
@@ -218,11 +230,7 @@ class TestCmdSplit:
       tail = Path("/tmp/recall-tail-testtail.md").read_text()
       first_line = tail.split("\n")[0].strip()
       assert first_line.startswith("--- USER #")
-      # Cleanup
-      for f in ["older", "tail", "prompt"]:
-         path = f"/tmp/recall-{f}-testtail.{'txt' if f == 'prompt' else 'md'}"
-         if os.path.exists(path):
-            os.remove(path)
+      self._cleanup("testtail")
 
    def test_prompt_file_contains_target_words(self, condense_mod, tmp_path):
       """The prompt file mentions the target word count."""
@@ -232,11 +240,7 @@ class TestCmdSplit:
       condense_mod.cmd_split(str(p), "testprompt12")
       prompt = Path("/tmp/recall-prompt-testprom.txt").read_text()
       assert "1,800 words" in prompt
-      # Cleanup
-      for f in ["older", "tail", "prompt"]:
-         path = f"/tmp/recall-{f}-testprom.{'txt' if f == 'prompt' else 'md'}"
-         if os.path.exists(path):
-            os.remove(path)
+      self._cleanup("testprom")
 
 
 # ── cmd_combine ───────────────────────────────────────────────────────────
@@ -298,13 +302,16 @@ class TestCmdCombine:
       assert "delete" in output
 
    def test_combine_cleans_up_temp_files(self, condense_mod, tmp_path):
-      """Temp files are removed after combine."""
+      """Temp files are removed after combine (except stats, which pre-compact.sh reads)."""
       p, prefix = self._setup_combine(condense_mod, tmp_path)
       condense_mod.cmd_combine(str(p), "testcomb12345678")
       assert not os.path.exists(f"/tmp/recall-older-{prefix}.md")
       assert not os.path.exists(f"/tmp/recall-tail-{prefix}.md")
       assert not os.path.exists(f"/tmp/recall-prompt-{prefix}.txt")
       assert not os.path.exists(f"/tmp/recall-summary-{prefix}.md")
+      # Stats file should still exist (pre-compact.sh needs it)
+      assert os.path.exists(f"/tmp/recall-stats-{prefix}.json")
+      os.remove(f"/tmp/recall-stats-{prefix}.json")
 
    def test_combine_missing_summary_returns_error(self, condense_mod, tmp_path):
       """If summary file doesn't exist, returns error code."""
@@ -340,3 +347,121 @@ class TestCompactionMarkers:
       older, tail = condense_mod.split_at_exchange_boundary(lines, 2000)
       combined = "".join(older) + "".join(tail)
       assert "COMPACTION #1" in combined
+
+
+# ── Stats JSON ───────────────────────────────────────────────────────────
+
+
+class TestStatsJson:
+   def _cleanup(self, prefix):
+      for f in ["older", "tail", "prompt", "stats"]:
+         ext = "txt" if f == "prompt" else ("json" if f == "stats" else "md")
+         path = f"/tmp/recall-{f}-{prefix}.{ext}"
+         if os.path.exists(path):
+            os.remove(path)
+
+   def test_stats_written_when_condensed(self, condense_mod, tmp_path):
+      """Stats JSON is written when condensation happens."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "large.md"
+      p.write_text(transcript)
+      result = condense_mod.cmd_split(str(p), "statstst1")
+      assert result == 0
+      stats_path = "/tmp/recall-stats-statstst.json"
+      assert os.path.exists(stats_path)
+      stats = json.loads(Path(stats_path).read_text())
+      assert stats["condensed"] is True
+      assert stats["original_tokens"] > 20000
+      assert stats["tail_tokens"] > 0
+      assert stats["older_tokens"] > 0
+      assert stats["total_exchanges"] == 40
+      assert stats["tail_exchanges"] > 0
+      assert stats["tail_exchanges"] < 40
+      assert stats["verbatim_pct"] > 0
+      assert stats["summarized_pct"] > 0
+      assert stats["verbatim_pct"] + stats["summarized_pct"] + stats["dropped_pct"] <= 101
+      self._cleanup("statstst")
+
+   def test_stats_written_when_not_condensed(self, condense_mod, tmp_path):
+      """Stats JSON is written even when no condensation needed."""
+      transcript = make_transcript(5, tokens_per_exchange=200)
+      p = tmp_path / "small.md"
+      p.write_text(transcript)
+      result = condense_mod.cmd_split(str(p), "statsnocn")
+      assert result == 2
+      prefix = "statsnocn"[:8]
+      stats_path = f"/tmp/recall-stats-{prefix}.json"
+      assert os.path.exists(stats_path)
+      stats = json.loads(Path(stats_path).read_text())
+      assert stats["condensed"] is False
+      assert stats["verbatim_pct"] == 100
+      assert stats["summarized_pct"] == 0
+      assert stats["dropped_pct"] == 0
+      assert stats["total_exchanges"] == 5
+      assert stats["tail_exchanges"] == 5
+      self._cleanup(prefix)
+
+   def test_stats_has_correct_keys_condensed(self, condense_mod, tmp_path):
+      """Condensed stats has all expected keys."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "keys.md"
+      p.write_text(transcript)
+      condense_mod.cmd_split(str(p), "statskey1")
+      stats = json.loads(Path("/tmp/recall-stats-statskey.json").read_text())
+      expected_keys = {
+         "condensed", "original_tokens", "tail_tokens", "older_tokens",
+         "dropped_tokens", "total_exchanges", "tail_exchanges",
+         "older_exchanges", "verbatim_pct", "summarized_pct", "dropped_pct",
+      }
+      assert set(stats.keys()) == expected_keys
+      self._cleanup("statskey")
+
+   def test_stats_has_correct_keys_not_condensed(self, condense_mod, tmp_path):
+      """Non-condensed stats has all expected keys."""
+      transcript = make_transcript(5, tokens_per_exchange=200)
+      p = tmp_path / "keys2.md"
+      p.write_text(transcript)
+      condense_mod.cmd_split(str(p), "statsncky")
+      stats = json.loads(Path("/tmp/recall-stats-statsnck.json").read_text())
+      expected_keys = {
+         "condensed", "original_tokens", "final_tokens",
+         "total_exchanges", "tail_exchanges",
+         "verbatim_pct", "summarized_pct", "dropped_pct",
+      }
+      assert set(stats.keys()) == expected_keys
+      self._cleanup("statsnck")
+
+   def test_combine_updates_stats_final_tokens(self, condense_mod, tmp_path):
+      """cmd_combine updates the stats file with final_tokens."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "combine_stats.md"
+      p.write_text(transcript)
+      session_id = "stcomb12345678"
+      prefix = session_id[:8]
+      condense_mod.cmd_split(str(p), session_id)
+
+      # Write fake summary
+      Path(f"/tmp/recall-summary-{prefix}.md").write_text(
+         "Summary of older context for TaskTracker CLI."
+      )
+      condense_mod.cmd_combine(str(p), session_id)
+
+      stats = json.loads(Path(f"/tmp/recall-stats-{prefix}.json").read_text())
+      assert "final_tokens" in stats
+      assert stats["final_tokens"] > 0
+      assert stats["final_tokens"] < stats["original_tokens"]
+      self._cleanup(prefix)
+
+   def test_percentages_sum_approximately_100(self, condense_mod, tmp_path):
+      """Verbatim + summarized + dropped percentages sum to ~100%."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "pct.md"
+      p.write_text(transcript)
+      session_id = "statspct1"
+      prefix = session_id[:8]
+      condense_mod.cmd_split(str(p), session_id)
+      stats = json.loads(Path(f"/tmp/recall-stats-{prefix}.json").read_text())
+      total = stats["verbatim_pct"] + stats["summarized_pct"] + stats["dropped_pct"]
+      # Rounding can cause ±1-2% deviation
+      assert 98 <= total <= 102
+      self._cleanup(prefix)

@@ -61,19 +61,67 @@ fi
 # is pulled into context automatically — no SessionStart stdout needed.
 if [ -n "$CWD" ] && [ -d "$CWD/.claude" ]; then
    CONTEXT_FILE="$CWD/.claude/recall-context.md"
+   SID_PREFIX="${SESSION_ID:0:8}"
+   STATS_FILE="/tmp/recall-stats-${SID_PREFIX}.json"
 
-   # Build the context file with instructions header
-   cat > "$CONTEXT_FILE" << 'HEADER'
-<!-- Recall: Pre-compaction transcript. This file is auto-generated and auto-cleaned. -->
+   # Build the header with stats from condense-tail.py
+   if [ -f "$STATS_FILE" ]; then
+      # Read all stats in a single python3 call for efficiency
+      # Values with commas must be quoted for bash eval
+      eval "$(python3 -c "
+import json
+d = json.load(open('$STATS_FILE'))
+print(f\"CONDENSED={'yes' if d['condensed'] else 'no'}\")
+print(f\"ORIGINAL_TOKENS='{d['original_tokens']:,}'\")
+print(f\"FINAL_TOKENS='{d.get('final_tokens', d['original_tokens']):,}'\")
+print(f\"TOTAL_EXCHANGES={d['total_exchanges']}\")
+print(f\"TAIL_EXCHANGES={d['tail_exchanges']}\")
+print(f\"VERBATIM_PCT={d['verbatim_pct']}\")
+print(f\"SUMMARIZED_PCT={d['summarized_pct']}\")
+print(f\"DROPPED_PCT={d['dropped_pct']}\")
+print(f\"TAIL_TOKENS='{d.get('tail_tokens', d.get('final_tokens', d['original_tokens'])):,}'\")
+" 2>/dev/null)"
 
-IMPORTANT: This is the COMPLETE conversation from before compaction. It contains every
-user message, assistant response, and tool call — far more detailed than the compaction
-summary. After reading this, do ALL of the following:
+      if [ "$CONDENSED" = "yes" ]; then
+         STATS_BLOCK="=== RECALL STATS ===
+Session: ${SESSION_ID}
+Original transcript: ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
+Condensation: YES — older context summarized by Sonnet
+  Verbatim tail: ${VERBATIM_PCT}% of original (last ${TAIL_EXCHANGES} exchanges, ~${TAIL_TOKENS} tokens)
+  Summarized: ${SUMMARIZED_PCT}% of original (older exchanges condensed to ~2,500 tokens)
+  Dropped: ${DROPPED_PCT}% (earliest exchanges beyond context cap)
+Final size: ~${FINAL_TOKENS} tokens"
+      else
+         STATS_BLOCK="=== RECALL STATS ===
+Session: ${SESSION_ID}
+Original transcript: ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
+Condensation: NO — full transcript preserved (100% verbatim)
+Final size: ~${FINAL_TOKENS} tokens"
+      fi
 
-1. UNDERSTAND the conversation arc and identify the last pending task
-2. RE-READ files needed for pending work (check FILES TOUCHED section)
-3. RE-LOAD skills from the SKILLS LOADED section if needed
-4. CONTINUE working on the pending task seamlessly — do NOT present a formal summary
+      # Clean up stats file
+      rm -f "$STATS_FILE"
+   else
+      # Fallback if stats file missing
+      STATS_BLOCK="=== RECALL STATS ===
+Session: ${SESSION_ID}
+(Stats unavailable — condensation status unknown)"
+   fi
+
+   cat > "$CONTEXT_FILE" << HEADER
+<!-- Recall: Pre-compaction transcript (auto-generated, auto-cleaned) -->
+
+${STATS_BLOCK}
+
+INSTRUCTIONS: This is the detailed conversation from before compaction — far richer than
+the compaction summary. After reading this, do ALL of the following:
+
+1. Print a single status line: "Recall loaded: ~X tokens (Y% verbatim, Z% summarized)"
+   using the stats above. If 100% verbatim, just say "Recall loaded: ~X tokens (full transcript)".
+2. UNDERSTAND the conversation arc and identify the last pending task
+3. RE-READ files needed for pending work (check FILES TOUCHED section)
+4. RE-LOAD skills from the SKILLS LOADED section if needed
+5. CONTINUE working on the pending task seamlessly
 
 If no work is pending, briefly summarize what was accomplished and ask what to do next.
 
