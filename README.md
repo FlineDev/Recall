@@ -165,7 +165,7 @@ The result is a ~17.5K token file: a concise summary of older work followed by t
 
 - **Transcript location:** `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
 - **Output location:** `/tmp/recall-<session-id>.md`
-- **Message cap:** Sessions exceeding 100 messages (50 exchanges) are truncated to the most recent 100
+- **No message cap:** All exchanges are preserved; `condense-tail.py` handles sizing (15K tail + up to 85K older)
 - **Token estimation:** `byte_count / 2.2` — calibrated from empirical data (~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin), never guessed from filesystem timestamps
 - **Condensation:** Single `claude -p --model sonnet` call (~15 seconds), using existing Claude Code authentication

@@ -435,16 +435,14 @@ class TestFormatOutput:
          if files_section and "/home/alex/projects/file.rs" in line:
             pytest.fail("Full home path should be shortened in FILES TOUCHED")
 
-   def test_truncated_messages_shown(self, parse_mod):
+   def test_no_truncation_line_in_output(self, parse_mod):
       metadata = self._make_metadata()
-      metadata["truncated_messages"] = 20
       output = parse_mod.format_output(
          self._make_simple_entries(),
          metadata,
          50000, 200, "/tmp/test.jsonl",
       )
-      assert "Truncated:" in output
-      assert "20 messages omitted" in output
+      assert "Truncated:" not in output
 
 
 # ── Integration tests with fixtures for splitting/capping ────────────────────
@@ -507,34 +505,22 @@ class TestLongAutonomousOutput:
 
 
 class TestChattySessionOutput:
-   """Test that chatty sessions with many exchanges get truncated."""
+   """Test that chatty sessions are fully preserved (no message cap)."""
 
-   def test_truncation_message(self, parse_mod, jsonl_fixture):
+   def test_chatty_session_no_truncation(self, parse_mod, jsonl_fixture):
+      """All exchanges are preserved — condense-tail.py handles sizing."""
       entries, metadata, total_bytes, total_lines = parse_mod.parse_session(
          jsonl_fixture("chatty_session.jsonl")
       )
       entries = parse_mod.merge_consecutive_tools(entries)
-
-      # Simulate main() capping logic
-      MAX_MESSAGES = 100
-      max_user_messages = MAX_MESSAGES // 2  # 50
-      user_indices = [i for i, e in enumerate(entries) if e.get("role") == "user"]
-
-      if len(user_indices) > max_user_messages:
-         cut_index = user_indices[len(user_indices) - max_user_messages]
-         truncated_count = len(user_indices) - max_user_messages
-         entries = entries[cut_index:]
-         metadata["truncated_messages"] = truncated_count * 2
 
       output = parse_mod.format_output(
          entries, metadata, total_bytes, total_lines,
          str(jsonl_fixture("chatty_session.jsonl")),
       )
 
-      # chatty_session has 60 user messages, which exceeds the 50 limit
-      if len(user_indices) > max_user_messages:
-         assert "Truncated:" in output
-         assert "messages omitted" in output
+      # No truncation message — all exchanges kept
+      assert "Truncated:" not in output
 
    def test_chatty_session_parses_without_error(self, parse_mod, jsonl_fixture):
       """Chatty session should parse without any errors."""

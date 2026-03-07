@@ -641,12 +641,6 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
       output.append(
          f"Compactions: {compactions} (summaries stripped, {stripped_bytes:,} bytes saved)"
       )
-   truncated = metadata.get("truncated_messages", 0)
-   if truncated:
-      output.append(
-         f"Truncated: first {truncated} messages omitted (kept last 100). "
-         f"See original transcript for full history."
-      )
    output.append("")
 
    # Stats
@@ -833,9 +827,8 @@ def main():
 
    # Split oversized bot messages into chunks of MAX_ENTRIES_PER_MESSAGE.
    # When Claude works autonomously, a single "bot message" (everything between
-   # two user messages) can have hundreds of entries. This makes the 100-message
-   # cap ineffective. By splitting large bot messages, each chunk counts as a
-   # separate message toward the cap.
+   # two user messages) can have hundreds of entries. Splitting keeps the output
+   # readable and ensures condense-tail.py can split at meaningful boundaries.
    MAX_ENTRIES_PER_MESSAGE = 10
    split_entries = []
    i = 0
@@ -873,17 +866,8 @@ def main():
          i += 1
    entries = split_entries
 
-   # Cap at MAX_MESSAGES to keep output manageable for very long sessions.
-   # A "message" is either a user message or a bot message (1 exchange = 2 messages).
-   # 100 messages = 50 exchanges. We count by user messages (each starts an exchange).
-   MAX_MESSAGES = 100
-   max_user_messages = MAX_MESSAGES // 2  # 50 exchanges
-   user_indices = [i for i, e in enumerate(entries) if e.get("role") == "user"]
-   if len(user_indices) > max_user_messages:
-      cut_index = user_indices[len(user_indices) - max_user_messages]
-      truncated_count = len(user_indices) - max_user_messages
-      entries = entries[cut_index:]
-      metadata["truncated_messages"] = truncated_count * 2  # user + bot per exchange
+   # No message cap — condense-tail.py handles sizing (15K tail + 85K older context).
+   # The full parsed output preserves all exchanges for maximum context recovery.
 
    output = format_output(entries, metadata, total_bytes, total_lines, str(transcript_path))
 
