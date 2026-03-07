@@ -1,56 +1,33 @@
 # Recall
 
-**Never lose context in Claude Code again** — a plugin for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that recovers rich session context after compaction and across sessions.
+**Never lose context in Claude Code again** — a plugin that recovers rich session context after compaction and across sessions.
 
-## The Problem
+## What You'll See
 
-When Claude Code auto-compacts your conversation, it generates a brief summary — but loses critical details: the exact wording of your requests, which files were touched and why, what approaches were tried and failed, and what work was still pending. You end up repeating yourself, and Claude forgets decisions you already made.
-
-Recall solves this by parsing the raw session transcript (the JSONL file Claude Code stores locally) and producing a detailed, structured markdown file that preserves:
-
-- **Every user message** — verbatim, exactly as you typed it
-- **Every assistant response** — verbatim, including reasoning and decisions
-- **Tool call summaries** — which tools were called with what parameters
-- **Compaction markers** — so you can see where context was previously lost
-- **Loaded skills** — so they can be re-loaded after compaction
-
-All while achieving **99%+ compression** by stripping tool results, thinking blocks, system reminders, and other redundant data.
-
-## Two Use Cases
-
-### Use Case 1: Automatic Recovery After Compaction
-
-This is the primary, "set it and forget it" mode. Two hooks + a CLAUDE.md reference work together:
-
-1. **PreCompact hook** — fires before compaction, parses the full transcript and writes it to `.claude/recall-context.md` in your project. For very large sessions (>20K tokens), it runs a single `claude -p --model sonnet` call to summarize older context while keeping recent exchanges verbatim.
-
-2. **CLAUDE.md `@`-reference** — your project's CLAUDE.md includes `@.claude/recall-context.md`. After compaction, Claude Code re-reads CLAUDE.md from disk and automatically pulls in the recall content.
-
-3. **SessionStart hook** — fires after compaction (and on new sessions), cleans up the recall file to prevent stale content from persisting.
-
-**You do nothing.** Claude seamlessly continues your work with full context — no repeated explanations, no lost decisions.
-
-**One-time setup per project:** Run `/recall:setup` to configure the CLAUDE.md reference and .gitignore entry (see Installation).
-
-### Use Case 2: Manual Session Recall
-
-When you exit Claude Code, it prints a session ID. Copy it, start a new session (or a different project), and run:
+After compaction, Claude automatically prints:
 
 ```
-/recall <session-id>
+Recall loaded: ~16,440 tokens (25% verbatim, 72% summarized)
+Full transcript: recall-943494ae.md
 ```
 
-Claude reads the full transcript from that session and presents a structured summary of what was accomplished, what's pending, and which files matter. Use this to:
+Then it seamlessly continues your work — no repeated explanations, no lost decisions, no "where were we?"
 
-- **Continue yesterday's work** — pick up exactly where you left off
-- **Resume after a rate limit** — don't lose context when you hit the 5-hour window
-- **Brief yourself** — quickly review what happened in a long session
+Without Recall, compaction produces a brief summary that loses: the exact wording of your requests, which files were touched and why, what approaches were tried and failed, and what work was still pending.
+
+With Recall, **99%+ of the noise is stripped** (tool results, thinking blocks, system reminders) while preserving:
+
+- Every user message — verbatim
+- Every assistant response — verbatim
+- Tool call summaries — which tools were called with what parameters
+- Compaction markers — so you can see where context was previously lost
+- Loaded skills — so they can be re-loaded after compaction
 
 ## Installation
 
-### Via Marketplace (Recommended)
+### Step 1: Install the plugin
 
-Start Claude Code (`claude`), then run these commands inside it:
+Start Claude Code, then run:
 
 ```
 /plugin marketplace add FlineDev/Marketplace
@@ -60,22 +37,24 @@ Start Claude Code (`claude`), then run these commands inside it:
 /plugin install recall
 ```
 
-Both hooks (PreCompact + SessionStart) are registered automatically.
+This registers two hooks automatically (PreCompact + SessionStart). Nothing else to configure globally.
 
-Then, in each project where you want automatic recovery, run the setup command:
+### Step 2: Set up each project
+
+In every project where you want automatic recovery, run:
 
 ```
 /recall:setup
 ```
 
-This configures the current project by:
-- Creating `.claude/recall-context.md` (the auto-generated context file)
-- Adding `@.claude/recall-context.md` to the first line of `CLAUDE.md` (creates it if needed)
-- Adding `.claude/recall-context.md` to `.gitignore`
+This does three things:
+1. Creates `.claude/recall-context.md` (auto-populated by the hook)
+2. Adds `@.claude/recall-context.md` as the first line of your `CLAUDE.md`
+3. Adds `.claude/recall-context.md` to `.gitignore`
 
-You only need to run setup once per project. After that, everything is automatic.
+**That's it.** Compaction recovery is now automatic. You'll never need to think about it again.
 
-### Manual
+### Alternative: Install without Marketplace
 
 ```
 /plugin install https://github.com/FlineDev/Recall.git
@@ -83,9 +62,12 @@ You only need to run setup once per project. After that, everything is automatic
 
 Then run `/recall:setup` in each project.
 
-### Without Plugin System
+### Alternative: Manual setup (without plugin system)
 
-If you prefer not to use the plugin system, you can configure the hooks manually in your project's `.claude/settings.json` or global `~/.claude/settings.json`:
+<details>
+<summary>Click to expand manual configuration</summary>
+
+Add these hooks to your `.claude/settings.json` (project or global):
 
 ```json
 {
@@ -119,32 +101,51 @@ If you prefer not to use the plugin system, you can configure the hooks manually
 
 Replace `<path-to>` with the absolute path to the `skills` directory.
 
-Then manually perform the setup steps:
-1. Create `.claude/recall-context.md` with placeholder content
+Then manually:
+1. Create `.claude/recall-context.md` with any placeholder content
 2. Add `@.claude/recall-context.md` as the first line of your `CLAUDE.md`
 3. Add `.claude/recall-context.md` to your `.gitignore`
 
+</details>
+
+## Two Modes
+
+### Automatic (after compaction)
+
+This is the primary, "set it and forget it" mode. When compaction happens — whether automatic or via `/compact` — Recall:
+
+1. **PreCompact hook** parses the full transcript and writes it to `.claude/recall-context.md`
+2. **CLAUDE.md `@`-reference** pulls the recall content into Claude's context after compaction
+3. **SessionStart hook** cleans up the file to prevent stale content
+
+**You do nothing.** Claude prints the stats line and continues where it left off.
+
+### Manual (across sessions)
+
+When you exit Claude Code, it prints a session ID. Copy it, start a new session, and run:
+
+```
+/recall <session-id>
+```
+
+Claude reads the full transcript from that session and presents a structured summary. Use this to:
+
+- **Continue yesterday's work** — pick up exactly where you left off
+- **Resume after a rate limit** — don't lose context when you hit the 5-hour window
+- **Brief yourself** — quickly review what happened in a long session
+
 ## How It Works
-
-### The Pipeline
-
-Two hooks coordinate the recovery:
-
-| Hook | When | What it does |
-|------|------|-------------|
-| `pre-compact.sh` | Before compaction | Parses transcript, condenses if >20K tokens |
-| `session-start.sh` | On session start | Cleans up recall file to prevent stale content |
 
 ### Condensation (for large sessions)
 
-When the transcript exceeds 20K tokens, `condense-tail.py` splits the conversation:
+When the parsed transcript exceeds 20K tokens, `condense-tail.py` splits it:
 
 | Part | Size | Treatment |
 |------|------|-----------|
-| Recent exchanges | ~15K tokens | Kept verbatim (most recent context) |
+| Recent exchanges | ~15K tokens | Kept verbatim (most recent context matters most) |
 | Older context | Up to 85K tokens | Summarized by a single `claude -p --model sonnet` call (~30-40s) |
 
-The result is a ~17.5K token file: a concise summary of older work followed by the full recent conversation. Output targets 15-20K tokens (~10% of Claude Code's 200K context window). This takes ~30-40 seconds (one API call).
+The result targets 15-20K tokens (~10% of Claude Code's 200K context window). For shorter sessions (<20K tokens), the full transcript is kept as-is with no API call.
 
 ### What's Preserved vs. Stripped
 
@@ -164,8 +165,8 @@ The result is a ~17.5K token file: a concise summary of older work followed by t
 ## Technical Details
 
 - **Transcript location:** `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
-- **Output location:** `/tmp/recall-<session-id>.md`
-- **No message cap:** All exchanges are preserved; `condense-tail.py` handles sizing (15K tail + up to 85K older)
-- **Token estimation:** `byte_count / 2.2` — calibrated from empirical data (~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
+- **Output location:** `/tmp/recall-<session-id>.md` (persists until reboot)
+- **No message cap:** All exchanges are preserved; `condense-tail.py` handles sizing
+- **Token estimation:** `byte_count / 2.2` (conservatively overestimates by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin), never guessed from filesystem timestamps
 - **Condensation:** Single `claude -p --model sonnet` call (~30-40 seconds), using existing Claude Code authentication
