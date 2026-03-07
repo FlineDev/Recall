@@ -1,0 +1,342 @@
+"""Tests for condense-tail.py: split/combine logic and exchange boundary handling."""
+
+import os
+import re
+from pathlib import Path
+
+import pytest
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────
+
+
+def make_exchange(user_num, user_tokens=50, asst_words=30, asst_tokens=80,
+                  tools_calls=1, tools_tokens=40, extra_text=""):
+   """Build a single exchange (user + tools + assistant) as markdown lines."""
+   lines = []
+   lines.append(f"--- USER #{user_num} [2026-01-15T10:00:00] ({user_tokens} tokens) ---\n")
+   lines.append(f"User message number {user_num}. " + "x " * (user_tokens // 3) + "\n")
+   lines.append("\n")
+   lines.append(f"--- TOOLS ({tools_calls} call / {tools_tokens} tokens) ---\n")
+   lines.append(f"  Read: ~/projects/tasktracker/src/main.rs\n")
+   lines.append("\n")
+   lines.append(f"--- ASSISTANT ({asst_words} words / {asst_tokens} tokens) ---\n")
+   lines.append(f"Assistant response for message {user_num}. " + "y " * (asst_words // 2) + "\n")
+   if extra_text:
+      lines.append(extra_text + "\n")
+   lines.append("\n")
+   return lines
+
+
+def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
+   """Build a full transcript markdown string with the given number of exchanges.
+
+   Each exchange is padded to approximately tokens_per_exchange tokens.
+   """
+   header = (
+      "=== SESSION RESUME ===\n"
+      "Project: /home/alex/projects/tasktracker\n"
+      "Branch: main\n"
+      "Session ID: test-session-12345678\n"
+      "Started: 2026-01-15T09:00:00\n"
+      "Last activity: 2026-01-15T18:00:00\n"
+      "\n"
+      "=== STATISTICS ===\n"
+      f"User messages: {num_exchanges}\n"
+      f"Assistant responses: {num_exchanges}\n"
+      f"Tool calls: {num_exchanges}\n"
+      "Subagent calls: 0\n"
+   )
+
+   # Build conversation
+   conversation_lines = ["=== CONVERSATION ===\n", "\n"]
+   for i in range(1, num_exchanges + 1):
+      # Pad each exchange to target size
+      padding_chars = max(0, int(tokens_per_exchange * 2.2) - 200)
+      extra = "z " * (padding_chars // 2) if padding_chars > 0 else ""
+      exchange = make_exchange(i, extra_text=extra)
+      conversation_lines.extend(exchange)
+
+   conversation_text = "".join(conversation_lines)
+
+   # Calculate total and set header token estimate
+   total_text = header + "Estimated tokens: ~0\n\n" + conversation_text
+   est_tokens = int(len(total_text.encode("utf-8")) / 2.2)
+   if header_tokens is not None:
+      est_tokens = header_tokens
+
+   header += f"Estimated tokens: ~{est_tokens:,}\n"
+   header += "\n"
+
+   return header + conversation_text
+
+
+# ── estimate_tokens ───────────────────────────────────────────────────────
+
+
+class TestEstimateTokens:
+   def test_empty(self, condense_mod):
+      assert condense_mod.estimate_tokens("") == 0
+
+   def test_known_string(self, condense_mod):
+      text = "Hello, world!"
+      assert condense_mod.estimate_tokens(text) == int(len(text.encode("utf-8")) / 2.2)
+
+
+# ── parse_token_estimate ──────────────────────────────────────────────────
+
+
+class TestParseTokenEstimate:
+   def test_parses_from_statistics(self, condense_mod):
+      text = "=== STATISTICS ===\nEstimated tokens: ~27,793\n"
+      assert condense_mod.parse_token_estimate(text) == 27793
+
+   def test_parses_no_comma(self, condense_mod):
+      text = "Estimated tokens: ~5000\n"
+      assert condense_mod.parse_token_estimate(text) == 5000
+
+   def test_fallback_when_missing(self, condense_mod):
+      text = "No token line here."
+      result = condense_mod.parse_token_estimate(text)
+      assert result == condense_mod.estimate_tokens(text)
+
+
+# ── parse_exchanges ───────────────────────────────────────────────────────
+
+
+class TestParseExchanges:
+   def test_single_exchange(self, condense_mod):
+      lines = make_exchange(1)
+      exchanges = condense_mod.parse_exchanges(lines)
+      assert len(exchanges) == 1
+      assert exchanges[0]["start_idx"] == 0
+
+   def test_multiple_exchanges(self, condense_mod):
+      lines = make_exchange(1) + make_exchange(2) + make_exchange(3)
+      exchanges = condense_mod.parse_exchanges(lines)
+      assert len(exchanges) == 3
+
+   def test_empty_input(self, condense_mod):
+      assert condense_mod.parse_exchanges([]) == []
+
+   def test_no_user_headers(self, condense_mod):
+      lines = ["Some random text\n", "More text\n"]
+      assert condense_mod.parse_exchanges(lines) == []
+
+
+# ── split_at_exchange_boundary ────────────────────────────────────────────
+
+
+class TestSplitAtExchangeBoundary:
+   def test_all_fits_in_tail(self, condense_mod):
+      """Small input: everything goes to tail, older is empty."""
+      lines = make_exchange(1) + make_exchange(2)
+      older, tail = condense_mod.split_at_exchange_boundary(lines, 50_000)
+      assert older == []
+      assert tail == lines
+
+   def test_split_at_boundary(self, condense_mod):
+      """Tail starts at a USER header line."""
+      # Create enough exchanges to exceed target
+      lines = []
+      for i in range(1, 21):
+         lines.extend(make_exchange(i, extra_text="padding " * 200))
+      older, tail = condense_mod.split_at_exchange_boundary(lines, 5000)
+      assert len(older) > 0
+      assert len(tail) > 0
+      # Tail must start with a USER header
+      first_tail = tail[0].strip()
+      assert first_tail.startswith("--- USER #")
+
+   def test_respects_target_approximately(self, condense_mod):
+      """Tail tokens should be roughly near the target."""
+      lines = []
+      for i in range(1, 31):
+         lines.extend(make_exchange(i, extra_text="padding " * 100))
+      older, tail = condense_mod.split_at_exchange_boundary(lines, 5000)
+      tail_tokens = condense_mod.estimate_tokens("".join(tail))
+      # Should be within reasonable range of target (exchanges are chunky)
+      assert tail_tokens >= 3000
+      assert tail_tokens <= 10000
+
+   def test_empty_input(self, condense_mod):
+      older, tail = condense_mod.split_at_exchange_boundary([], 5000)
+      assert older == []
+      assert tail == []
+
+   def test_single_huge_exchange(self, condense_mod):
+      """One exchange bigger than target: still included in tail."""
+      lines = make_exchange(1, extra_text="huge " * 5000)
+      older, tail = condense_mod.split_at_exchange_boundary(lines, 1000)
+      # Single exchange can't be split, goes to tail
+      assert older == []
+      assert tail == lines
+
+
+# ── cmd_split ─────────────────────────────────────────────────────────────
+
+
+class TestCmdSplit:
+   def test_no_action_under_threshold(self, condense_mod, tmp_path):
+      """Transcript under 20K tokens: exit code 2, no files created."""
+      transcript = make_transcript(5, tokens_per_exchange=200)
+      p = tmp_path / "small.md"
+      p.write_text(transcript)
+      result = condense_mod.cmd_split(str(p), "test12345678")
+      assert result == 2
+
+   def test_no_action_at_threshold(self, condense_mod, tmp_path):
+      """Exactly at 20K tokens: no condensation."""
+      transcript = make_transcript(5, tokens_per_exchange=200, header_tokens=20000)
+      p = tmp_path / "exact.md"
+      p.write_text(transcript)
+      result = condense_mod.cmd_split(str(p), "test12345678")
+      assert result == 2
+
+   def test_split_creates_files(self, condense_mod, tmp_path):
+      """Transcript over 20K: creates older, tail, and prompt files."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "large.md"
+      p.write_text(transcript)
+      result = condense_mod.cmd_split(str(p), "test12345678")
+      assert result == 0
+      assert os.path.exists("/tmp/recall-older-test1234.md")
+      assert os.path.exists("/tmp/recall-tail-test1234.md")
+      assert os.path.exists("/tmp/recall-prompt-test1234.txt")
+      # Cleanup
+      for f in ["older", "tail", "prompt"]:
+         path = f"/tmp/recall-{f}-test1234.{'txt' if f == 'prompt' else 'md'}"
+         if os.path.exists(path):
+            os.remove(path)
+
+   def test_tail_starts_at_user_header(self, condense_mod, tmp_path):
+      """The tail file starts with a USER header."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "large.md"
+      p.write_text(transcript)
+      condense_mod.cmd_split(str(p), "testtail1234")
+      tail = Path("/tmp/recall-tail-testtail.md").read_text()
+      first_line = tail.split("\n")[0].strip()
+      assert first_line.startswith("--- USER #")
+      # Cleanup
+      for f in ["older", "tail", "prompt"]:
+         path = f"/tmp/recall-{f}-testtail.{'txt' if f == 'prompt' else 'md'}"
+         if os.path.exists(path):
+            os.remove(path)
+
+   def test_prompt_file_contains_target_words(self, condense_mod, tmp_path):
+      """The prompt file mentions the target word count."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "large.md"
+      p.write_text(transcript)
+      condense_mod.cmd_split(str(p), "testprompt12")
+      prompt = Path("/tmp/recall-prompt-testprom.txt").read_text()
+      assert "1,800 words" in prompt
+      # Cleanup
+      for f in ["older", "tail", "prompt"]:
+         path = f"/tmp/recall-{f}-testprom.{'txt' if f == 'prompt' else 'md'}"
+         if os.path.exists(path):
+            os.remove(path)
+
+
+# ── cmd_combine ───────────────────────────────────────────────────────────
+
+
+class TestCmdCombine:
+   def _setup_combine(self, condense_mod, tmp_path, session_id="testcomb12"):
+      """Create a large transcript, split it, write a fake summary."""
+      transcript = make_transcript(40, tokens_per_exchange=800)
+      p = tmp_path / "combine.md"
+      p.write_text(transcript)
+      result = condense_mod.cmd_split(str(p), session_id + "345678")
+      assert result == 0
+
+      prefix = (session_id + "345678")[:8]
+      # Write a fake summary
+      summary_path = f"/tmp/recall-summary-{prefix}.md"
+      Path(summary_path).write_text(
+         "This session was about building the TaskTracker CLI. "
+         "The user asked to add a new 'delete' command. "
+         "Files modified: src/commands/delete.rs, src/main.rs."
+      )
+      return p, prefix
+
+   def test_combine_produces_sections(self, condense_mod, tmp_path):
+      """Combined output has both SUMMARIZED and RECENT sections."""
+      p, prefix = self._setup_combine(condense_mod, tmp_path)
+      result = condense_mod.cmd_combine(str(p), "testcomb12345678")
+      assert result == 0
+      output = p.read_text()
+      assert "=== SUMMARIZED OLDER CONTEXT ===" in output
+      assert "=== RECENT CONVERSATION (VERBATIM) ===" in output
+
+   def test_combine_preserves_header(self, condense_mod, tmp_path):
+      """Combined output still has SESSION RESUME and STATISTICS."""
+      p, prefix = self._setup_combine(condense_mod, tmp_path)
+      condense_mod.cmd_combine(str(p), "testcomb12345678")
+      output = p.read_text()
+      assert "=== SESSION RESUME ===" in output
+      assert "=== STATISTICS ===" in output
+
+   def test_combine_updates_token_estimate(self, condense_mod, tmp_path):
+      """Token estimate is updated after combining."""
+      p, prefix = self._setup_combine(condense_mod, tmp_path)
+      condense_mod.cmd_combine(str(p), "testcomb12345678")
+      output = p.read_text()
+      # Should have an updated token estimate
+      match = re.search(r"Estimated tokens: ~([\d,]+)", output)
+      assert match is not None
+      tokens = int(match.group(1).replace(",", ""))
+      assert tokens > 0
+
+   def test_combine_includes_summary_content(self, condense_mod, tmp_path):
+      """The fake summary text appears in the output."""
+      p, prefix = self._setup_combine(condense_mod, tmp_path)
+      condense_mod.cmd_combine(str(p), "testcomb12345678")
+      output = p.read_text()
+      assert "TaskTracker CLI" in output
+      assert "delete" in output
+
+   def test_combine_cleans_up_temp_files(self, condense_mod, tmp_path):
+      """Temp files are removed after combine."""
+      p, prefix = self._setup_combine(condense_mod, tmp_path)
+      condense_mod.cmd_combine(str(p), "testcomb12345678")
+      assert not os.path.exists(f"/tmp/recall-older-{prefix}.md")
+      assert not os.path.exists(f"/tmp/recall-tail-{prefix}.md")
+      assert not os.path.exists(f"/tmp/recall-prompt-{prefix}.txt")
+      assert not os.path.exists(f"/tmp/recall-summary-{prefix}.md")
+
+   def test_combine_missing_summary_returns_error(self, condense_mod, tmp_path):
+      """If summary file doesn't exist, returns error code."""
+      p = tmp_path / "nosummary.md"
+      p.write_text(make_transcript(5, tokens_per_exchange=200))
+      result = condense_mod.cmd_combine(str(p), "nonexist12345678")
+      assert result == 1
+
+
+# ── Compaction markers ────────────────────────────────────────────────────
+
+
+class TestCompactionMarkers:
+   def test_markers_preserved_in_correct_section(self, condense_mod):
+      """Compaction markers stay in whichever section they fall in."""
+      lines = []
+      for i in range(1, 6):
+         lines.extend(make_exchange(i, extra_text="padding " * 200))
+      # Insert a compaction marker between exchanges 2 and 3
+      marker = "[=== COMPACTION #1 (auto, 50000 tokens before) ===]\n"
+      # Find where exchange 3 starts
+      exchange3_start = None
+      count = 0
+      for idx, line in enumerate(lines):
+         if line.strip().startswith("--- USER #"):
+            count += 1
+            if count == 3:
+               exchange3_start = idx
+               break
+      lines.insert(exchange3_start, "\n")
+      lines.insert(exchange3_start, marker)
+
+      older, tail = condense_mod.split_at_exchange_boundary(lines, 2000)
+      combined = "".join(older) + "".join(tail)
+      assert "COMPACTION #1" in combined

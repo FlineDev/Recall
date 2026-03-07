@@ -22,7 +22,7 @@ All while achieving **99%+ compression** by stripping tool results, thinking blo
 
 This is the primary, "set it and forget it" mode. Two hooks + a CLAUDE.md reference work together:
 
-1. **PreCompact hook** — fires before compaction, parses the full transcript and writes it to `.claude/recall-context.md` in your project. For very large sessions (>25K tokens), it launches parallel `claude -p --model haiku` calls to intelligently compress the biggest messages while preserving key details.
+1. **PreCompact hook** — fires before compaction, parses the full transcript and writes it to `.claude/recall-context.md` in your project. For very large sessions (>20K tokens), it runs a single `claude -p --model sonnet` call to summarize older context while keeping recent exchanges verbatim.
 
 2. **CLAUDE.md `@`-reference** — your project's CLAUDE.md includes `@.claude/recall-context.md`. After compaction, Claude Code re-reads CLAUDE.md from disk and automatically pulls in the recall content.
 
@@ -112,18 +112,19 @@ Two hooks coordinate the recovery:
 
 | Hook | When | What it does |
 |------|------|-------------|
-| `pre-compact.sh` | Before compaction | Parses transcript, summarizes if >25K tokens |
+| `pre-compact.sh` | Before compaction | Parses transcript, condenses if >20K tokens |
 | `session-start.sh` | After compaction | Injects prepared content into Claude's context |
 
-### Summarization Pipeline (for large sessions)
+### Condensation (for large sessions)
 
-When the transcript exceeds 25K tokens, `summarize.sh` runs automatically:
+When the transcript exceeds 20K tokens, `condense-tail.py` splits the conversation:
 
-| Script | Purpose |
-|--------|---------|
-| `extract-longest.py` | Identifies large messages using iterative partitioning |
-| `claude -p --model haiku` | Summarizes each message (up to 5 in parallel) |
-| `apply-summaries.py` | Patches summaries back into the transcript |
+| Part | Size | Treatment |
+|------|------|-----------|
+| Recent exchanges | ~15K tokens | Kept verbatim (most recent context) |
+| Older context | Up to 50K tokens | Summarized by a single `claude -p --model sonnet` call into ~2,500 tokens |
+
+The result is a ~17.5K token file: a concise summary of older work followed by the full recent conversation. Output targets 15-20K tokens (~10% of Claude Code's 200K context window). This takes ~15 seconds (one API call).
 
 ### What's Preserved vs. Stripped
 
@@ -134,18 +135,6 @@ When the transcript exceeds 25K tokens, `summarize.sh` runs automatically:
 | Tool call summaries (name + key params) | System reminders |
 | Compaction markers with token counts | Progress events |
 | Loaded skills list | Compaction summaries (we keep more detail) |
-
-### Adaptive Summarization
-
-For very long sessions, Recall uses an iterative partitioning algorithm:
-
-1. **Freeze** the last exchange (most recent user message + response) — always kept verbatim
-2. **Calculate** the remaining token budget (target: 15K tokens total)
-3. **Partition** messages iteratively: freeze short messages (below average), keep large ones as candidates
-4. **Summarize** candidates using parallel `claude -p --model haiku` calls with proportional word targets
-5. **Patch** the summaries back into the transcript
-
-This ensures the most recent context is always complete while compressing older, larger messages proportionally.
 
 ## Requirements
 
@@ -159,4 +148,4 @@ This ensures the most recent context is always complete while compressing older,
 - **Message cap:** Sessions exceeding 100 messages (50 exchanges) are truncated to the most recent 100
 - **Token estimation:** `byte_count / 2.2` — calibrated from empirical data (~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin), never guessed from filesystem timestamps
-- **Parallel summarization:** Up to 5 concurrent `claude -p` calls, using existing Claude Code authentication
+- **Condensation:** Single `claude -p --model sonnet` call (~15 seconds), using existing Claude Code authentication

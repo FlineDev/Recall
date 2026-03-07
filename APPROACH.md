@@ -15,7 +15,7 @@ in CLAUDE.md are resolved during that re-read.
 
 1. **PreCompact hook** (runs before compaction):
    - Parses transcript → generates recall content
-   - If >25K tokens: runs parallel `claude -p --model haiku` summarization
+   - If >20K tokens: condenses with a single `claude -p --model sonnet` call (~15s)
    - Writes result to `.claude/recall-context.md` in the project directory
 
 2. **Compaction happens**:

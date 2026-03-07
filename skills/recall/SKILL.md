@@ -19,7 +19,7 @@ When exiting Claude Code, the session ID is printed. User copies it, starts a ne
 ### Use Case 2: After Compaction (automatic via hooks)
 
 Two hooks work together automatically:
-- **PreCompact** parses the transcript and (if needed) summarizes large sessions using parallel `claude -p --model haiku` calls
+- **PreCompact** parses the transcript and (if needed) summarizes large sessions using a single `claude -p --model sonnet` call
 - **SessionStart** (compact matcher) injects the prepared transcript directly into Claude's context
 
 When installed as a plugin, both hooks are registered automatically via `hooks/hooks.json`. No manual configuration needed.
@@ -38,17 +38,27 @@ python3 <BASE_DIRECTORY>/scripts/parse-transcript.py <SESSION_ID> --cwd "$(pwd)"
 
 Replace `<SESSION_ID>` with the value from `{{args}}`.
 
-### Step 1b: Summarize if needed (large sessions only)
+### Step 1b: Condense if needed (large sessions only)
 
-Check the token estimate in the output file. If it exceeds 25K tokens, run the summarization script:
+Check the token estimate in the output file. If it exceeds 20K tokens, run the condensation script:
 
 ```bash
-bash <BASE_DIRECTORY>/scripts/summarize.sh /tmp/recall-<SESSION_ID>.md <SESSION_ID>
+python3 <BASE_DIRECTORY>/scripts/condense-tail.py split /tmp/recall-<SESSION_ID>.md <SESSION_ID>
 ```
 
-This launches parallel `claude -p --model haiku` calls to compress large messages while preserving key details (tool names, file paths, decisions, outcomes). The transcript is patched in-place.
+If exit code is 0 (condensation needed), run a single Sonnet call and combine:
 
-**Fallback — if the Read tool rejects the file as too large:** Read the file in chunks of 500 lines (using `offset` and `limit` parameters) until you've read the entire file. Do NOT skip the file or fall back to the compaction summary — the recall transcript is always more detailed.
+```bash
+SID_PREFIX="${SESSION_ID:0:8}"
+unset CLAUDECODE
+cat "/tmp/recall-older-${SID_PREFIX}.md" | \
+  claude -p --model sonnet --no-session-persistence \
+    "$(cat /tmp/recall-prompt-${SID_PREFIX}.txt)" \
+    > "/tmp/recall-summary-${SID_PREFIX}.md"
+python3 <BASE_DIRECTORY>/scripts/condense-tail.py combine /tmp/recall-<SESSION_ID>.md <SESSION_ID>
+```
+
+This sends older conversation context to a single Sonnet call for summarization (~15 seconds), then prepends the summary to the verbatim recent exchanges. Exit code 2 means no condensation needed (≤20K tokens).
 
 ### Step 2: Analyze the condensed transcript
 
@@ -116,6 +126,6 @@ Read the full output carefully. From the complete conversation history (all user
 - **Preserved:** ALL user messages verbatim, ALL assistant text responses verbatim, tool call summaries (name + key params), compaction markers with token counts
 - **Stripped:** Compaction summaries (redundant — we keep more detail), system reminders, tool result contents, thinking blocks, progress events
 - **Message cap:** Sessions exceeding 100 messages (50 exchanges) are truncated to the most recent 100 messages
-- **Adaptive summarization:** If output exceeds 25K tokens, parallel `claude -p --model haiku` calls summarize the largest messages. The iterative partitioning algorithm freezes the last exchange and short messages, then selects large messages for summarization with proportional `target_words` guidance. Bot messages in the frozen tail exceeding 3K tokens are also summarized (to ~1.5K).
+- **Adaptive condensation:** If output exceeds 20K tokens, the most recent ~15K tokens of exchanges are kept verbatim. Older context (up to 50K tokens) is summarized by a single `claude -p --model sonnet` call into ~2,500 tokens (~1,800 words). Output targets 15-20K tokens (~10% of Claude Code's 200K context window).
 - **Token estimation:** Byte count / 2.2 (calibrated from empirical data: ~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin). Never guessed from filesystem timestamps.

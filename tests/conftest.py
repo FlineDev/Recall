@@ -31,15 +31,9 @@ def parse_mod(monkeypatch):
 
 
 @pytest.fixture
-def extract_mod():
-   """Import extract-longest.py as a module."""
-   return _import_script("extract_longest", "extract-longest.py")
-
-
-@pytest.fixture
-def apply_mod():
-   """Import apply-summaries.py as a module."""
-   return _import_script("apply_summaries", "apply-summaries.py")
+def condense_mod():
+   """Import condense-tail.py as a module."""
+   return _import_script("condense_tail", "condense-tail.py")
 
 
 @pytest.fixture
