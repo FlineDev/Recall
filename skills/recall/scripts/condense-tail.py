@@ -24,7 +24,8 @@ import sys
 THRESHOLD_TOKENS = 20_000     # Only condense if above this
 TAIL_TARGET_TOKENS = 15_000   # Keep ~15K tokens of recent exchanges verbatim
 OLDER_CAP_TOKENS = 85_000     # Max tokens of older context to send to Sonnet
-SUMMARY_TARGET_WORDS = 1_800  # ~2,500 tokens at 1.4 tokens/word
+# Note: no fixed word count target — the prompt guides the model to choose
+# an appropriate length based on session complexity.
 # ──────────────────────────────────────────────────────────────────────────
 
 USER_HEADER_RE = re.compile(r"^--- USER #\d+ \[.*?\] \(\d+ tokens\) ---$")
@@ -137,34 +138,34 @@ def split_at_exchange_boundary(conversation_lines, target_tail_tokens):
 
 def build_sonnet_prompt():
    """Build the prompt for the single Sonnet summarization call."""
-   return f"""You are summarizing the OLDER portion of a Claude Code conversation transcript. \
-The recent conversation is preserved verbatim separately — your summary covers \
-only the earlier context.
+   return """Summarize this older portion of a Claude Code conversation transcript. \
+The recent conversation is preserved verbatim elsewhere — focus only on the earlier context here.
 
-TARGET LENGTH: approximately {SUMMARY_TARGET_WORDS:,} words (~2,500 tokens). Aim within 10%.
+Your summary will be injected into a future Claude session to restore lost context after \
+compaction. Write for an AI reader who needs to continue the work seamlessly.
 
-WHAT TO EMPHASIZE:
-- User requests and instructions (exact wording when important)
-- Decisions made and their rationale
-- Files created, modified, or deleted (with paths)
-- Errors encountered and how they were resolved
-- Key code changes (function names, architectural decisions)
-- Approaches tried and failed (so they aren't repeated)
-- Constraints or preferences the user stated
+PRIORITIES (in order):
+1. User's intentions and goals — the "why" behind each request
+2. Decisions and their rationale — especially alternatives that were considered and rejected
+3. File paths modified, created, or deleted — exact paths matter
+4. Problems encountered and solutions — especially bugs and their root causes
+5. Architectural patterns established — naming conventions, key abstractions, data flow
+6. User preferences and constraints stated during the conversation
+7. Current state — what's done, what's in progress, what's blocked
 
-WHAT TO CONDENSE:
-- Full file contents (just note path and what it contained)
-- Verbose tool output (just note the outcome)
-- Exploratory reads that didn't lead to changes
+SKIP OR MINIMIZE:
+- File contents (just note path + purpose)
+- Tool output details (just note outcomes)
+- Reads that didn't lead to action
 
-STRUCTURE:
-- Narrative style, chronological order
-- Group related actions into paragraphs
-- Bold for file paths, bullet lists for multiple items
-- Start with one-sentence overview of session topic
-- End with state of work where this section ends
+FORMAT: Chronological narrative with bold paths and bullet lists. Start with a one-line \
+session overview. End with precise state description.
 
-Summarize the following older conversation context:"""
+LENGTH: Be thorough but not verbose. A good summary captures every important decision and \
+file change without reproducing conversations verbatim. Think of it as detailed meeting \
+notes — nothing critical missing, nothing unnecessary included.
+
+Summarize:"""
 
 
 def write_stats(prefix, stats):

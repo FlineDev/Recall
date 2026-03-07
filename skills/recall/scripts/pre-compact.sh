@@ -88,15 +88,17 @@ Session: ${SESSION_ID}
 Original transcript: ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
 Condensation: YES — older context summarized by Sonnet
   Verbatim tail: ${VERBATIM_PCT}% of original (last ${TAIL_EXCHANGES} exchanges, ~${TAIL_TOKENS} tokens)
-  Summarized: ${SUMMARIZED_PCT}% of original (older exchanges condensed to ~2,500 tokens)
+  Summarized: ${SUMMARIZED_PCT}% of original (older exchanges condensed by Sonnet)
   Dropped: ${DROPPED_PCT}% (earliest exchanges beyond context cap)
-Final size: ~${FINAL_TOKENS} tokens"
+Final size: ~${FINAL_TOKENS} tokens
+Full transcript: /tmp/recall-${SESSION_ID}.md"
       else
          STATS_BLOCK="=== RECALL STATS ===
 Session: ${SESSION_ID}
 Original transcript: ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
 Condensation: NO — full transcript preserved (100% verbatim)
-Final size: ~${FINAL_TOKENS} tokens"
+Final size: ~${FINAL_TOKENS} tokens
+Full transcript: /tmp/recall-${SESSION_ID}.md"
       fi
 
       # Clean up stats file
@@ -113,11 +115,17 @@ Session: ${SESSION_ID}
 
 ${STATS_BLOCK}
 
-INSTRUCTIONS: This is the detailed conversation from before compaction — far richer than
-the compaction summary. After reading this, do ALL of the following:
+NOTE: This file (.claude/recall-context.md) is auto-cleaned on next session start.
+The full transcript persists at the path above until system reboot.
 
-1. Print a single status line: "Recall loaded: ~X tokens (Y% verbatim, Z% summarized)"
-   using the stats above. If 100% verbatim, just say "Recall loaded: ~X tokens (full transcript)".
+INSTRUCTIONS: This is the detailed conversation from before compaction — far richer than
+the compaction summary. BEFORE doing anything else — before responding to ANY user message,
+before acting on any request — you MUST:
+
+1. Print a single status line as the VERY FIRST thing you output:
+   "Recall loaded: ~X tokens (Y% verbatim, Z% summarized)"
+   using the RECALL STATS above. If 100% verbatim, say "Recall loaded: ~X tokens (full transcript)".
+   This applies whether compaction was automatic OR triggered manually by the user via /compact.
 2. UNDERSTAND the conversation arc and identify the last pending task
 3. RE-READ files needed for pending work (check FILES TOUCHED section)
 4. RE-LOAD skills from the SKILLS LOADED section if needed

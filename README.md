@@ -142,7 +142,7 @@ When the transcript exceeds 20K tokens, `condense-tail.py` splits the conversati
 | Part | Size | Treatment |
 |------|------|-----------|
 | Recent exchanges | ~15K tokens | Kept verbatim (most recent context) |
-| Older context | Up to 85K tokens | Summarized by a single `claude -p --model sonnet` call into ~2,500 tokens |
+| Older context | Up to 85K tokens | Summarized by a single `claude -p --model sonnet` call (~30-40s) |
 
 The result is a ~17.5K token file: a concise summary of older work followed by the full recent conversation. Output targets 15-20K tokens (~10% of Claude Code's 200K context window). This takes ~15 seconds (one API call).
 

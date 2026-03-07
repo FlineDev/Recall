@@ -232,14 +232,16 @@ class TestCmdSplit:
       assert first_line.startswith("--- USER #")
       self._cleanup("testtail")
 
-   def test_prompt_file_contains_target_words(self, condense_mod, tmp_path):
-      """The prompt file mentions the target word count."""
+   def test_prompt_file_contains_key_instructions(self, condense_mod, tmp_path):
+      """The prompt file contains key summarization instructions."""
       transcript = make_transcript(40, tokens_per_exchange=800)
       p = tmp_path / "large.md"
       p.write_text(transcript)
       condense_mod.cmd_split(str(p), "testprompt12")
       prompt = Path("/tmp/recall-prompt-testprom.txt").read_text()
-      assert "1,800 words" in prompt
+      assert "PRIORITIES" in prompt
+      assert "File paths" in prompt
+      assert "Summarize:" in prompt
       self._cleanup("testprom")
 
 

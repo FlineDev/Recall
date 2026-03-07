@@ -126,6 +126,6 @@ Read the full output carefully. From the complete conversation history (all user
 - **Preserved:** ALL user messages verbatim, ALL assistant text responses verbatim, tool call summaries (name + key params), compaction markers with token counts
 - **Stripped:** Compaction summaries (redundant — we keep more detail), system reminders, tool result contents, thinking blocks, progress events
 - **Message cap:** Sessions exceeding 100 messages (50 exchanges) are truncated to the most recent 100 messages
-- **Adaptive condensation:** If output exceeds 20K tokens, the most recent ~15K tokens of exchanges are kept verbatim. Older context (up to 85K tokens) is summarized by a single `claude -p --model sonnet` call into ~2,500 tokens (~1,800 words). Output targets 15-20K tokens (~10% of Claude Code's 200K context window).
+- **Adaptive condensation:** If output exceeds 20K tokens, the most recent ~15K tokens of exchanges are kept verbatim. Older context (up to 85K tokens) is summarized by a single `claude -p --model sonnet` call (~30-40 seconds). The summary length adapts to session complexity. Output targets 15-20K tokens (~10% of Claude Code's 200K context window).
 - **Token estimation:** Byte count / 2.2 (calibrated from empirical data: ~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin). Never guessed from filesystem timestamps.
