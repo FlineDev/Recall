@@ -133,7 +133,7 @@ Two hooks coordinate the recovery:
 | Hook | When | What it does |
 |------|------|-------------|
 | `pre-compact.sh` | Before compaction | Parses transcript, condenses if >20K tokens |
-| `session-start.sh` | After compaction | Injects prepared content into Claude's context |
+| `session-start.sh` | On session start | Cleans up recall file to prevent stale content |
 
 ### Condensation (for large sessions)
 
@@ -144,7 +144,7 @@ When the transcript exceeds 20K tokens, `condense-tail.py` splits the conversati
 | Recent exchanges | ~15K tokens | Kept verbatim (most recent context) |
 | Older context | Up to 85K tokens | Summarized by a single `claude -p --model sonnet` call (~30-40s) |
 
-The result is a ~17.5K token file: a concise summary of older work followed by the full recent conversation. Output targets 15-20K tokens (~10% of Claude Code's 200K context window). This takes ~15 seconds (one API call).
+The result is a ~17.5K token file: a concise summary of older work followed by the full recent conversation. Output targets 15-20K tokens (~10% of Claude Code's 200K context window). This takes ~30-40 seconds (one API call).
 
 ### What's Preserved vs. Stripped
 
@@ -168,4 +168,4 @@ The result is a ~17.5K token file: a concise summary of older work followed by t
 - **No message cap:** All exchanges are preserved; `condense-tail.py` handles sizing (15K tail + up to 85K older)
 - **Token estimation:** `byte_count / 2.2` — calibrated from empirical data (~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin), never guessed from filesystem timestamps
-- **Condensation:** Single `claude -p --model sonnet` call (~15 seconds), using existing Claude Code authentication
+- **Condensation:** Single `claude -p --model sonnet` call (~30-40 seconds), using existing Claude Code authentication

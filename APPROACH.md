@@ -1,100 +1,57 @@
-# Recall: CLAUDE.md @-Reference Approach
+# Recall: Design Decisions
 
-## Problem
+## Core Approach: PreCompact writes, CLAUDE.md reads, SessionStart cleans
 
-SessionStart(compact) hook runs scripts reliably, but its stdout is silently dropped
-by Claude Code (bug: github.com/anthropics/claude-code/issues/28305). This means we
-cannot inject recall content via `additionalContext` JSON or plain text output.
-
-However, CLAUDE.md IS re-read from disk after every compaction. And `@file` references
-in CLAUDE.md are resolved during that re-read.
-
-## Solution: PreCompact writes, CLAUDE.md reads, SessionStart cleans
+Claude Code's SessionStart hook stdout is silently dropped (bug: github.com/anthropics/claude-code/issues/28305).
+However, CLAUDE.md IS re-read from disk after every compaction, and `@file` references are resolved during that re-read.
 
 ### Flow
 
 1. **PreCompact hook** (runs before compaction):
    - Parses transcript → generates recall content
-   - If >20K tokens: condenses with a single `claude -p --model sonnet` call (~15s)
+   - If >20K tokens: condenses with a single `claude -p --model sonnet` call (~30-40s)
    - Writes result to `.claude/recall-context.md` in the project directory
+   - Also writes to `/tmp/recall-<session-id>.md` as a persistent copy
 
 2. **Compaction happens**:
    - Claude Code re-reads CLAUDE.md from disk
-   - CLAUDE.md contains `@.claude/recall-context.md`
+   - CLAUDE.md contains `@.claude/recall-context.md` (first line)
    - The recall content is pulled into Claude's context automatically
-   - Claude sees the full pre-compaction transcript as part of its instructions
 
-3. **SessionStart(compact) hook** (runs after compaction):
-   - Empties `.claude/recall-context.md` (truncates to 0 bytes or writes empty marker)
-   - The script runs reliably — only stdout injection is broken
-   - This prevents stale content from being loaded on next compaction or new session
-
-4. **SessionStart(startup) hook** (runs on new session):
-   - Also empties `.claude/recall-context.md` as a safety net
-   - This matcher works reliably (both script execution AND stdout injection)
-   - Prevents new sessions from seeing stale recall content
+3. **SessionStart hook** (runs on every session start):
+   - Empties `.claude/recall-context.md` (writes placeholder comment)
+   - Matcher `""` matches ALL sources (startup, compact, resume, clear)
+   - This prevents stale content from persisting into the next session
 
 ### Why this works
 
 - CLAUDE.md is read BEFORE hooks fire (confirmed by research)
 - PreCompact runs BEFORE compaction → file has content when CLAUDE.md is re-read
 - SessionStart runs AFTER CLAUDE.md is read → cleaning up doesn't affect current read
-- The file is within the project directory → @-reference resolves reliably
 
 ### Edge cases
 
-- **Multiple sessions same project**: Unlikely two compactions happen simultaneously.
-  If they do, PreCompact overwrites the file (last writer wins). Not ideal but not
-  catastrophic.
-- **New session sees stale content**: SessionStart(startup) empties the file, but
-  CLAUDE.md was already read before the hook fires. The stale content would be from
-  a different session. Mitigation: include session ID in the file so Claude can
-  recognize and ignore stale content.
-- **Session ID awareness**: Claude does NOT know its own session ID in-context. But
-  the recall file contains the session ID it was generated for. If it doesn't match,
-  Claude should ignore it (add instruction in CLAUDE.md).
+- **Multiple sessions same project**: PreCompact overwrites the file (last writer wins).
+  Unlikely two compactions happen simultaneously.
+- **Stale content on new session**: SessionStart empties the file, but CLAUDE.md was
+  already read before the hook fires. Mitigation: the recall stats header includes the
+  session ID, so Claude can recognize stale content from a different session.
 
-### Changes needed
+## Condensation Strategy
 
-1. **pre-compact.sh**: Write output to `$CWD/.claude/recall-context.md` instead of
-   `/tmp/recall-{session_id}.md` (keep /tmp as backup)
-2. **session-start.sh**: Empty `$CWD/.claude/recall-context.md` on both `compact`
-   and `startup` matchers (or use a single matcher that covers both)
-3. **Each project's CLAUDE.md** (or AGENTS.md): Add `@.claude/recall-context.md`
-4. **Each project's .gitignore**: Add `.claude/recall-context.md`
-5. **SKILL.md**: Update manual `/recall` to also write to `.claude/recall-context.md`
+Instead of per-message summarization (the old approach with 48 parallel Haiku calls that took 5 minutes
+and was effectively a no-op due to a token mismatch bug), we use a simple tail-preservation approach:
 
-### Hook configuration
+- **≤20K tokens**: Keep the full transcript as-is, no API call
+- **>20K tokens**: Keep last ~15K tokens verbatim (snapping to exchange boundaries),
+  summarize up to 85K of older context with a single Sonnet call
 
-```json
-{
-  "hooks": {
-    "PreCompact": [
-      {
-        "matcher": "auto|manual",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".../pre-compact.sh",
-            "timeout": 300
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".../session-start.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+This takes ~30-40 seconds and produces a ~17.5K token output (within the 15-20K target range,
+~10% of Claude Code's 200K context window).
 
-Note: Empty matcher `""` matches ALL SessionStart sources (startup, compact, resume,
-clear). This ensures the file is always cleaned up regardless of how the session starts.
+## Per-Project Setup
+
+Each project needs three things (configured by `/recall:setup`):
+1. `@.claude/recall-context.md` as the first line of CLAUDE.md
+2. `.claude/recall-context.md` file (placeholder, auto-populated by hook)
+3. `.claude/recall-context.md` in `.gitignore`

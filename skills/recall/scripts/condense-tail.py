@@ -4,7 +4,7 @@
 Design goal: Output targets 15-20K tokens (~10% of Claude Code's 200K context window).
 - If transcript ≤ 20K tokens: keep as-is, no API call needed.
 - If > 20K: keep ~15K tokens of recent exchanges verbatim, summarize older context
-  with a single claude -p --model sonnet call into ~2.5K tokens.
+  with a single claude -p --model sonnet call (~30-40s).
 
 Two subcommands:
   split   — Check if condensation needed, split into older + tail + prompt files
@@ -216,7 +216,6 @@ def cmd_split(input_path, session_id):
       return 2
 
    lines = all_lines_nl
-   header_lines = lines[:conv_start]
    conversation_lines = lines[conv_start:]
 
    older_lines, tail_lines = split_at_exchange_boundary(

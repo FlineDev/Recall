@@ -20,7 +20,7 @@ When exiting Claude Code, the session ID is printed. User copies it, starts a ne
 
 Two hooks work together automatically:
 - **PreCompact** parses the transcript and (if needed) summarizes large sessions using a single `claude -p --model sonnet` call
-- **SessionStart** (compact matcher) injects the prepared transcript directly into Claude's context
+- **SessionStart** cleans up the recall file after it's been read (prevents stale content from persisting)
 
 When installed as a plugin, both hooks are registered automatically via `hooks/hooks.json`. No manual configuration needed.
 
@@ -58,7 +58,7 @@ cat "/tmp/recall-older-${SID_PREFIX}.md" | \
 python3 <BASE_DIRECTORY>/scripts/condense-tail.py combine /tmp/recall-<SESSION_ID>.md <SESSION_ID>
 ```
 
-This sends older conversation context to a single Sonnet call for summarization (~15 seconds), then prepends the summary to the verbatim recent exchanges. Exit code 2 means no condensation needed (≤20K tokens).
+This sends older conversation context to a single Sonnet call for summarization (~30-40 seconds), then prepends the summary to the verbatim recent exchanges. Exit code 2 means no condensation needed (≤20K tokens).
 
 ### Step 2: Analyze the condensed transcript
 

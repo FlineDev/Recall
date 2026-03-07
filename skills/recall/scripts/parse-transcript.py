@@ -7,7 +7,6 @@ Output: Condensed transcript to stdout, stats to stderr.
 
 import json
 import sys
-import os
 import re
 from pathlib import Path
 
@@ -148,7 +147,7 @@ def condense_skill_injection(text):
    args = args_match.group(1).strip() if args_match else ""
 
    content_words = count_words(text)
-   content_tokens = int(len(text.encode("utf-8")) / 2.2)
+   content_tokens = estimate_tokens(text)
 
    line = f"[Skill loaded: {skill_name} (~{content_words} words / ~{content_tokens} tokens)]"
    if args:
@@ -171,7 +170,7 @@ def condense_plan_injection(text, plan_files):
    title = title_match.group(1).strip() if title_match else "untitled plan"
 
    content_words = count_words(text)
-   content_tokens = int(len(text.encode("utf-8")) / 2.2)
+   content_tokens = estimate_tokens(text)
 
    # Find the most recent plan file (last one written is most likely the final version)
    plan_file = plan_files[-1] if plan_files else None
@@ -196,12 +195,10 @@ def parse_task_notification(text):
    summary_match = re.search(r"<summary>(.*?)</summary>", text, re.DOTALL)
    result_match = re.search(r"<result>(.*?)</result>", text, re.DOTALL)
    status_match = re.search(r"<status>(.*?)</status>", text, re.DOTALL)
-   task_id_match = re.search(r"<task-id>(.*?)</task-id>", text, re.DOTALL)
    tool_use_id_match = re.search(r"<tool-use-id>(.*?)</tool-use-id>", text, re.DOTALL)
 
    summary = summary_match.group(1).strip() if summary_match else "unknown task"
    status = status_match.group(1).strip() if status_match else "?"
-   task_id = task_id_match.group(1).strip() if task_id_match else None
    tool_use_id = tool_use_id_match.group(1).strip() if tool_use_id_match else None
 
    result_words = 0
@@ -209,7 +206,7 @@ def parse_task_notification(text):
    if result_match:
       result_text = result_match.group(1).strip()
       result_words = count_words(result_text)
-      result_tokens = int(len(result_text.encode("utf-8")) / 2.2)
+      result_tokens = estimate_tokens(result_text)
 
    parts = [f"[Task notification: {summary} (status: {status}"]
    if result_words > 0:
@@ -344,9 +341,8 @@ def parse_session(transcript_path):
          if subtype not in known_system_subtypes:
             key = f"system:{subtype}" if subtype else "system"
             unknown_types[key] = unknown_types.get(key, 0) + 1
-      elif msg_type not in known_types and msg_type not in ("user", "assistant"):
-         if msg_type not in known_types:
-            unknown_types[msg_type] = unknown_types.get(msg_type, 0) + 1
+      elif msg_type not in known_types:
+         unknown_types[msg_type] = unknown_types.get(msg_type, 0) + 1
 
       if msg_type == "user":
          msg = obj.get("message", {})
@@ -591,14 +587,11 @@ def collect_file_operations(entries):
 
 
 def estimate_tokens(text):
-   """Estimate token count from text using byte count.
+   """Estimate token count from text using byte count / 2.2.
 
    Calibrated from empirical data on technical markdown + code:
    - Measured ratio: ~2.35 bytes/token for mixed markdown + Swift/Python code
    - We use 2.2 bytes/token to conservatively overestimate by ~7%
-
-   This replaces the old word_count × 1.4 heuristic which underestimated
-   by ~34% for technical content (e.g. 22K estimated vs 54K actual).
    """
    byte_count = len(text.encode("utf-8")) if isinstance(text, str) else len(text)
    return int(byte_count / 2.2)

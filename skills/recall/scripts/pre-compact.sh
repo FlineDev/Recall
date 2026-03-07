@@ -37,7 +37,7 @@ fi
 
 # Step 2: Condense if needed (>20K tokens)
 # Keeps ~15K tokens of recent exchanges verbatim, summarizes older context
-# with a single claude -p --model sonnet call into ~2.5K tokens.
+# with a single claude -p --model sonnet call (~30-40s).
 CONDENSE_EXIT=0
 python3 "${SCRIPT_DIR}/condense-tail.py" split "$OUTPUT_FILE" "$SESSION_ID" 2>>/tmp/recall-precompact.log || CONDENSE_EXIT=$?
 
@@ -122,9 +122,11 @@ INSTRUCTIONS: This is the detailed conversation from before compaction — far r
 the compaction summary. BEFORE doing anything else — before responding to ANY user message,
 before acting on any request — you MUST:
 
-1. Print a single status line as the VERY FIRST thing you output:
+1. Print a status block as the VERY FIRST thing you output:
    "Recall loaded: ~X tokens (Y% verbatim, Z% summarized)"
    using the RECALL STATS above. If 100% verbatim, say "Recall loaded: ~X tokens (full transcript)".
+   On the next line, print the full transcript path as a markdown link for transparency:
+   "Full transcript: [recall-SESSION_ID.md](file:///tmp/recall-SESSION_ID.md)"
    This applies whether compaction was automatic OR triggered manually by the user via /compact.
 2. UNDERSTAND the conversation arc and identify the last pending task
 3. RE-READ files needed for pending work (check FILES TOUCHED section)
