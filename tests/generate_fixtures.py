@@ -1262,21 +1262,21 @@ def gen_f16_mixed_content_user():
 MD_HEADER_TEMPLATE = """\
 ## Session Resume
 
-- **Project:** /home/alex/projects/tasktracker
-- **Branch:** {branch}
-- **Session ID:** {session_id}
-- **Transcript:** /tmp/{transcript}
-- **Started:** {started}
-- **Last activity:** {last_activity}
-- **Original transcript:** {size} ({lines} lines)
+Project | /home/alex/projects/tasktracker
+Branch | {branch}
+Session ID | {session_id}
+Transcript | /tmp/{transcript}
+Started | {started}
+Last activity | {last_activity}
+Original transcript | {size} ({lines} lines)
 
 ## Statistics
 
-- **User messages:** {user_msgs}
-- **Assistant responses:** {assistant_msgs}
-- **Tool calls:** {tool_calls}
-- **Subagent calls:** {subagent_calls}
-- **Estimated tokens:** ~{tokens:,}
+User messages | {user_msgs}
+Assistant responses | {assistant_msgs}
+Tool calls | {tool_calls}
+Subagent calls | {subagent_calls}
+Estimated tokens | ~{tokens:,}
 
 ## Conversation
 """

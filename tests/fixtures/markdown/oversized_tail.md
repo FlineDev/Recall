@@ -1,20 +1,20 @@
 ## Session Resume
 
-- **Project:** /home/alex/projects/tasktracker
-- **Branch:** main
-- **Session ID:** test-session-m03
-- **Transcript:** /tmp/test-m03.jsonl
-- **Started:** 2026-01-15T14:00:00
-- **Last activity:** 2026-01-15T15:00:00
-- **Original transcript:** 120 KB (200 lines)
+Project | /home/alex/projects/tasktracker
+Branch | main
+Session ID | test-session-m03
+Transcript | /tmp/test-m03.jsonl
+Started | 2026-01-15T14:00:00
+Last activity | 2026-01-15T15:00:00
+Original transcript | 120 KB (200 lines)
 
 ## Statistics
 
-- **User messages:** 10
-- **Assistant responses:** 10
-- **Tool calls:** 15
-- **Subagent calls:** 0
-- **Estimated tokens:** ~8,000
+User messages | 10
+Assistant responses | 10
+Tool calls | 15
+Subagent calls | 0
+Estimated tokens | ~8,000
 
 ## Conversation
 

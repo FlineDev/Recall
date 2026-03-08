@@ -395,7 +395,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "Estimated tokens:" in output
+      assert "Estimated tokens |" in output
 
    def test_home_dir_shortened_in_files_touched(self, parse_mod):
       entries = [

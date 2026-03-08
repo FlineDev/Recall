@@ -616,26 +616,29 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
 
    output.append("## Session Resume")
    output.append("")
+   resume_rows = []
    if session_summary:
-      output.append(f"- **Summary:** {session_summary}")
-   output.append(f"- **Project:** {cwd}")
-   output.append(f"- **Branch:** {branch}")
+      resume_rows.append(("Summary", session_summary))
+   resume_rows.append(("Project", cwd))
+   resume_rows.append(("Branch", branch))
    if perm:
-      output.append(f"- **Permission mode:** {perm}")
+      resume_rows.append(("Permission mode", perm))
    if session_id:
-      output.append(f"- **Session ID:** {session_id}")
-   output.append(f"- **Transcript:** {transcript_path}")
+      resume_rows.append(("Session ID", session_id))
+   resume_rows.append(("Transcript", transcript_path))
    if start:
-      output.append(f"- **Started:** {start[:19]}")
+      resume_rows.append(("Started", start[:19]))
    if end:
-      output.append(f"- **Last activity:** {end[:19]}")
-   output.append(
-      f"- **Original transcript:** {total_bytes / 1024 / 1024:.1f} MB ({total_lines} lines)"
+      resume_rows.append(("Last activity", end[:19]))
+   resume_rows.append(
+      ("Original transcript", f"{total_bytes / 1024 / 1024:.1f} MB ({total_lines} lines)")
    )
    if compactions:
-      output.append(
-         f"- **Compactions:** {compactions} (summaries stripped, {stripped_bytes:,} bytes saved)"
+      resume_rows.append(
+         ("Compactions", f"{compactions} (summaries stripped, {stripped_bytes:,} bytes saved)")
       )
+   for label, value in resume_rows:
+      output.append(f"{label} | {value}")
    output.append("")
 
    # Stats
@@ -654,10 +657,10 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
 
    output.append("## Statistics")
    output.append("")
-   output.append(f"- **User messages:** {user_msgs}")
-   output.append(f"- **Assistant responses:** {assistant_msgs}")
-   output.append(f"- **Tool calls:** {total_tool_calls}")
-   output.append(f"- **Subagent calls:** {agent_calls}")
+   output.append(f"User messages | {user_msgs}")
+   output.append(f"Assistant responses | {assistant_msgs}")
+   output.append(f"Tool calls | {total_tool_calls}")
+   output.append(f"Subagent calls | {agent_calls}")
    output.append("")
 
    # File operations
@@ -672,7 +675,10 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
             x[0],
          ),
       )
-      for path, ops in sorted_files:
+      max_files = 25
+      shown_files = sorted_files[:max_files]
+      remaining = len(sorted_files) - len(shown_files)
+      for path, ops in shown_files:
          short_path = path.replace(home, "~")
          parts = []
          if ops["reads"]:
@@ -682,6 +688,8 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
          if ops["writes"]:
             parts.append(f"written {ops['writes']}x")
          output.append(f"- `{short_path}` ({', '.join(parts)})")
+      if remaining:
+         output.append(f"- *...and {remaining} more files with fewer operations*")
       output.append("")
 
    # Skills loaded
@@ -781,7 +789,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    full_text = "\n".join(output)
    est_tokens = estimate_tokens(full_text)
    # Insert token estimate into the header (after Statistics)
-   stats_line = f"- **Estimated tokens:** ~{est_tokens:,}"
+   stats_line = f"Estimated tokens | ~{est_tokens:,}"
    # Find the right place to insert
    for idx, line in enumerate(output):
       if line == "## Statistics":

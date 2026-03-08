@@ -9,21 +9,21 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 
 ## Session Resume
 
-- **Project:** /Users/dev/Projects/TaskTracker
-- **Branch:** feature/recurring-tasks
-- **Session ID:** a1b2c3d4-e5f6-7890-abcd-ef1234567890
-- **Started:** 2026-03-05T09:15:32
-- **Last activity:** 2026-03-05T14:48:17
-- **Original transcript:** 3.2 MB (1,847 lines)
-- **Compactions:** 2 (summaries stripped, 24,310 bytes saved)
+Project | /Users/dev/Projects/TaskTracker
+Branch | feature/recurring-tasks
+Session ID | a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Started | 2026-03-05T09:15:32
+Last activity | 2026-03-05T14:48:17
+Original transcript | 3.2 MB (1,847 lines)
+Compactions | 2 (summaries stripped, 24,310 bytes saved)
 
 ## Statistics
 
-- **User messages:** 38
-- **Assistant responses:** 142
-- **Tool calls:** 127
-- **Subagent calls:** 3
-- **Estimated tokens:** ~18,450
+User messages | 38
+Assistant responses | 142
+Tool calls | 127
+Subagent calls | 3
+Estimated tokens | ~18,450
 
 ## Files Touched
 

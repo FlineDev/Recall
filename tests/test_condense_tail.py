@@ -42,18 +42,18 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    header = (
       "## Session Resume\n"
       "\n"
-      "- **Project:** /home/alex/projects/tasktracker\n"
-      "- **Branch:** main\n"
-      "- **Session ID:** test-session-12345678\n"
-      "- **Started:** 2026-01-15T09:00:00\n"
-      "- **Last activity:** 2026-01-15T18:00:00\n"
+      "Project | /home/alex/projects/tasktracker\n"
+      "Branch | main\n"
+      "Session ID | test-session-12345678\n"
+      "Started | 2026-01-15T09:00:00\n"
+      "Last activity | 2026-01-15T18:00:00\n"
       "\n"
       "## Statistics\n"
       "\n"
-      f"- **User messages:** {num_exchanges}\n"
-      f"- **Assistant responses:** {num_exchanges}\n"
-      f"- **Tool calls:** {num_exchanges}\n"
-      "- **Subagent calls:** 0\n"
+      f"User messages | {num_exchanges}\n"
+      f"Assistant responses | {num_exchanges}\n"
+      f"Tool calls | {num_exchanges}\n"
+      "Subagent calls | 0\n"
    )
 
    # Build conversation
@@ -68,12 +68,12 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    conversation_text = "".join(conversation_lines)
 
    # Calculate total and set header token estimate
-   total_text = header + "- **Estimated tokens:** ~0\n\n" + conversation_text
+   total_text = header + "Estimated tokens | ~0\n\n" + conversation_text
    est_tokens = int(len(total_text.encode("utf-8")) / 3.0)
    if header_tokens is not None:
       est_tokens = header_tokens
 
-   header += f"- **Estimated tokens:** ~{est_tokens:,}\n"
+   header += f"Estimated tokens | ~{est_tokens:,}\n"
    header += "\n"
 
    return header + conversation_text
@@ -96,11 +96,11 @@ class TestEstimateTokens:
 
 class TestParseTokenEstimate:
    def test_parses_from_statistics(self, condense_mod):
-      text = "## Statistics\n\n- **Estimated tokens:** ~27,793\n"
+      text = "## Statistics\n\nEstimated tokens | ~27,793\n"
       assert condense_mod.parse_token_estimate(text) == 27793
 
    def test_parses_no_comma(self, condense_mod):
-      text = "- **Estimated tokens:** ~5000\n"
+      text = "Estimated tokens | ~5000\n"
       assert condense_mod.parse_token_estimate(text) == 5000
 
    def test_fallback_when_missing(self, condense_mod):
@@ -297,7 +297,7 @@ class TestCmdCombine:
       condense_mod.cmd_combine(str(p), "testcomb12345678")
       output = p.read_text()
       # Should have an updated token estimate
-      match = re.search(r"\*\*Estimated tokens:\*\* ~([\d,]+)", output)
+      match = re.search(r"Estimated tokens \| ~([\d,]+)", output)
       assert match is not None
       tokens = int(match.group(1).replace(",", ""))
       assert tokens > 0

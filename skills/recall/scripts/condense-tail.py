@@ -44,7 +44,7 @@ def estimate_tokens(text):
 def parse_token_estimate(text):
    """Extract the 'Estimated tokens: ~N,NNN' value from the STATISTICS section."""
    for line in text.split("\n"):
-      if "**Estimated tokens:**" in line and "~" in line:
+      if "Estimated tokens" in line and "~" in line:
          num_str = line.split("~")[1].replace(",", "").strip()
          return int(num_str)
    return estimate_tokens(text)
@@ -356,8 +356,8 @@ def cmd_combine(input_path, session_id):
    new_tokens = estimate_tokens(output)
    updated_lines = []
    for line in output.split("\n"):
-      if "**Estimated tokens:**" in line and "~" in line:
-         updated_lines.append(f"- **Estimated tokens:** ~{new_tokens:,}")
+      if "Estimated tokens" in line and "~" in line:
+         updated_lines.append(f"Estimated tokens | ~{new_tokens:,}")
       else:
          updated_lines.append(line)
    output = "\n".join(updated_lines)

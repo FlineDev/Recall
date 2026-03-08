@@ -1,20 +1,20 @@
 ## Session Resume
 
-- **Project:** /home/alex/projects/tasktracker
-- **Branch:** refactor/modules
-- **Session ID:** test-session-m05
-- **Transcript:** /tmp/test-m05.jsonl
-- **Started:** 2026-01-15T10:00:00
-- **Last activity:** 2026-01-15T11:30:00
-- **Original transcript:** 280 KB (400 lines)
+Project | /home/alex/projects/tasktracker
+Branch | refactor/modules
+Session ID | test-session-m05
+Transcript | /tmp/test-m05.jsonl
+Started | 2026-01-15T10:00:00
+Last activity | 2026-01-15T11:30:00
+Original transcript | 280 KB (400 lines)
 
 ## Statistics
 
-- **User messages:** 22
-- **Assistant responses:** 22
-- **Tool calls:** 30
-- **Subagent calls:** 0
-- **Estimated tokens:** ~11,000
+User messages | 22
+Assistant responses | 22
+Tool calls | 30
+Subagent calls | 0
+Estimated tokens | ~11,000
 
 ## Conversation
 
