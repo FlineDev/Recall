@@ -41,7 +41,7 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    Each exchange is padded to approximately tokens_per_exchange tokens.
    """
    header = (
-      "## Session Resume\n"
+      "# Session Resume\n"
       "\n"
       "- **Project:** /home/alex/projects/tasktracker\n"
       "- **Branch:** main\n"
@@ -49,7 +49,7 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
       "- **Started:** 2026-01-15T09:00:00\n"
       "- **Last activity:** 2026-01-15T18:00:00\n"
       "\n"
-      "## Statistics\n"
+      "# Statistics\n"
       "\n"
       f"- **User messages:** {num_exchanges}\n"
       f"- **Assistant responses:** {num_exchanges}\n"
@@ -58,7 +58,7 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    )
 
    # Build conversation
-   conversation_lines = ["## Conversation\n", "\n", "---\n", "\n"]
+   conversation_lines = ["# Conversation\n", "\n", "---\n", "\n"]
    for i in range(1, num_exchanges + 1):
       # Pad each exchange to target size
       padding_chars = max(0, int(tokens_per_exchange * 3.0) - 200)
@@ -97,7 +97,7 @@ class TestEstimateTokens:
 
 class TestParseTokenEstimate:
    def test_parses_from_statistics(self, condense_mod):
-      text = "## Statistics\n\n- **Estimated tokens:** ~27,793\n"
+      text = "# Statistics\n\n- **Estimated tokens:** ~27,793\n"
       assert condense_mod.parse_token_estimate(text) == 27793
 
    def test_parses_no_comma(self, condense_mod):
@@ -281,16 +281,16 @@ class TestCmdCombine:
       result = condense_mod.cmd_combine(str(p), "testcomb12345678")
       assert result == 0
       output = p.read_text()
-      assert "## Summarized Older Context" in output
-      assert "## Recent Conversation (Verbatim)" in output
+      assert "# Summarized Older Context" in output
+      assert "# Recent Conversation (Verbatim)" in output
 
    def test_combine_preserves_header(self, condense_mod, tmp_path):
       """Combined output still has SESSION RESUME and STATISTICS."""
       p, prefix = self._setup_combine(condense_mod, tmp_path)
       condense_mod.cmd_combine(str(p), "testcomb12345678")
       output = p.read_text()
-      assert "## Session Resume" in output
-      assert "## Statistics" in output
+      assert "# Session Resume" in output
+      assert "# Statistics" in output
 
    def test_combine_updates_token_estimate(self, condense_mod, tmp_path):
       """Token estimate is updated after combining."""

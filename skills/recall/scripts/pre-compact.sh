@@ -83,7 +83,7 @@ print(f\"TAIL_TOKENS='{d.get('tail_tokens', d.get('final_tokens', d['original_to
 " 2>/dev/null)"
 
       if [ "$CONDENSED" = "yes" ]; then
-         STATS_BLOCK="## Recall Stats
+         STATS_BLOCK="# Recall Stats
 
 - **Session:** ${SESSION_ID}
 - **Original transcript:** ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
@@ -94,7 +94,7 @@ print(f\"TAIL_TOKENS='{d.get('tail_tokens', d.get('final_tokens', d['original_to
 - **Final size:** ~${FINAL_TOKENS} tokens
 - **Full transcript:** /tmp/recall-${SESSION_ID}.md"
       else
-         STATS_BLOCK="## Recall Stats
+         STATS_BLOCK="# Recall Stats
 
 - **Session:** ${SESSION_ID}
 - **Original transcript:** ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
@@ -107,7 +107,7 @@ print(f\"TAIL_TOKENS='{d.get('tail_tokens', d.get('final_tokens', d['original_to
       rm -f "$STATS_FILE"
    else
       # Fallback if stats file missing
-      STATS_BLOCK="## Recall Stats
+      STATS_BLOCK="# Recall Stats
 
 - **Session:** ${SESSION_ID}
 - *(Stats unavailable — condensation status unknown)*"

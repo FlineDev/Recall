@@ -1260,7 +1260,7 @@ def gen_f16_mixed_content_user():
 # ═══════════════════════════════════════════════════════════
 
 MD_HEADER_TEMPLATE = """\
-## Session Resume
+# Session Resume
 
 - **Project:** /home/alex/projects/tasktracker
 - **Branch:** {branch}
@@ -1270,7 +1270,7 @@ MD_HEADER_TEMPLATE = """\
 - **Last activity:** {last_activity}
 - **Original transcript:** {size} ({lines} lines)
 
-## Statistics
+# Statistics
 
 - **User messages:** {user_msgs}
 - **Assistant responses:** {assistant_msgs}
@@ -1278,7 +1278,7 @@ MD_HEADER_TEMPLATE = """\
 - **Subagent calls:** {subagent_calls}
 - **Estimated tokens:** ~{tokens:,}
 
-## Conversation
+# Conversation
 
 ---
 """

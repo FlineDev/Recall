@@ -1,4 +1,4 @@
-## Session Resume
+# Session Resume
 
 - **Project:** /home/alex/projects/tasktracker
 - **Branch:** main
@@ -8,7 +8,7 @@
 - **Last activity:** 2026-01-15T15:00:00
 - **Original transcript:** 120 KB (200 lines)
 
-## Statistics
+# Statistics
 
 - **User messages:** 10
 - **Assistant responses:** 10
@@ -16,7 +16,7 @@
 - **Subagent calls:** 0
 - **Estimated tokens:** ~8,000
 
-## Conversation
+# Conversation
 
 ---
 

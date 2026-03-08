@@ -51,12 +51,12 @@ def parse_token_estimate(text):
 
 
 def find_conversation_start(lines):
-   """Find the line index where '## Conversation' starts.
+   """Find the line index where '# Conversation' starts.
 
    Returns the index of the first line AFTER the header, blank line, and --- separator.
    """
    for i, line in enumerate(lines):
-      if line.strip() == "## Conversation":
+      if line.strip() == "# Conversation":
          # Skip the header, blank lines, and --- separator
          j = i + 1
          while j < len(lines) and lines[j].strip() in ("", "---"):
@@ -339,9 +339,11 @@ def cmd_combine(input_path, session_id):
 
    # Build combined output
    output = header_text
-   output += "## Summarized Older Context\n\n"
-   output += summary_text + "\n\n"
-   output += "## Recent Conversation (Verbatim)\n\n"
+   output += "# Summarized Older Context\n\n"
+   # Blockquote the summary to visually separate it from conversation
+   quoted_summary = "\n".join(f"> {line}" if line.strip() else ">" for line in summary_text.split("\n"))
+   output += quoted_summary + "\n\n"
+   output += "# Recent Conversation (Verbatim)\n\n"
    output += tail_text
 
    # Update token estimate

@@ -1,4 +1,4 @@
-## Session Resume
+# Session Resume
 
 - **Project:** /home/alex/projects/tasktracker
 - **Branch:** refactor/modules
@@ -8,7 +8,7 @@
 - **Last activity:** 2026-01-15T11:30:00
 - **Original transcript:** 280 KB (400 lines)
 
-## Statistics
+# Statistics
 
 - **User messages:** 22
 - **Assistant responses:** 22
@@ -16,7 +16,7 @@
 - **Subagent calls:** 0
 - **Estimated tokens:** ~11,000
 
-## Conversation
+# Conversation
 
 ---
 

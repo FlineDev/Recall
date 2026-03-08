@@ -7,7 +7,7 @@ Claude Code's built-in compaction.
 
 For comparison, see what Claude Code produces by default: [compaction-summary.md](compaction-summary.md) (~3,500 tokens)
 
-## Session Resume
+# Session Resume
 
 - **Project:** /Users/dev/Projects/TaskTracker
 - **Branch:** feature/recurring-tasks
@@ -17,7 +17,7 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 - **Original transcript:** 3.2 MB (1,847 lines)
 - **Compactions:** 2 (summaries stripped, 24,310 bytes saved)
 
-## Statistics
+# Statistics
 
 - **User messages:** 38
 - **Assistant responses:** 142
@@ -25,7 +25,7 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 - **Subagent calls:** 3
 - **Estimated tokens:** ~18,450
 
-## Files Touched
+# Files Touched
 
 - `Sources/Models/RecurrenceRule.swift` (read 6x, edited 8x, written 1x)
 - `Sources/Models/TaskOccurrence.swift` (read 3x, edited 4x, written 1x)
@@ -37,11 +37,11 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 - `Tests/RecurrenceIntegrationTests.swift` (read 2x, edited 3x, written 1x)
 - `Package.swift` (read 1x)
 
-## Skills Loaded
+# Skills Loaded
 
 - app-dev-context
 
-## Conversation
+# Conversation
 
 ---
 
