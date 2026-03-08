@@ -79,7 +79,7 @@ Read the full output carefully. From the complete conversation history (all user
 - Code files that are actively being worked on (edited but work not yet finished)
 - Configuration or data files needed for the pending task
 - Documentation files that provide essential context — but ONLY if NOT already loaded by CLAUDE.md / AGENTS.md (those load automatically at session start)
-- **Skills from the previous session** — Check the `=== SKILLS LOADED ===` section. If any skills provided domain-specific context needed for the pending work (e.g. build tools, API workflows, coding guidelines), re-load them with `/skillname`. Skills already listed in the system-reminder don't need re-loading — they're available automatically.
+- **Skills from the previous session** — Check the `## Skills Loaded` section. If any skills provided domain-specific context needed for the pending work (e.g. build tools, API workflows, coding guidelines), re-load them with `/skillname`. Skills already listed in the system-reminder don't need re-loading — they're available automatically.
 
 **Typically skip:**
 - Files that were read once for a completed task (the work is done)
@@ -116,7 +116,7 @@ Read the full output carefully. From the complete conversation history (all user
 
 ## Terminology
 
-- **Entry**: A single block in the transcript (`--- USER ---`, `--- TOOLS ---`, or `--- ASSISTANT ---`)
+- **Entry**: A single block in the transcript (user `> [!NOTE]` callout, `> **Tools**` blockquote, or `**Assistant**` section)
 - **Message**: Either a "user message" (1 USER entry) or a "bot message" (all TOOLS/ASSISTANT entries following a user message). The algorithm operates on messages.
 - **Exchange**: 1 user message + 1 bot message = 2 messages
 
@@ -127,5 +127,5 @@ Read the full output carefully. From the complete conversation history (all user
 - **Stripped:** Compaction summaries (redundant — we keep more detail), system reminders, tool result contents, thinking blocks, progress events
 - **No message cap:** All exchanges are preserved in the parsed output. `condense-tail.py` handles sizing.
 - **Adaptive condensation:** If output exceeds 20K tokens, the most recent ~15K tokens of exchanges are kept verbatim. Older context (up to 85K tokens) is summarized by a single `claude -p --model sonnet` call (~30-40 seconds). The summary length adapts to session complexity. Output targets 15-20K tokens (~10% of Claude Code's 200K context window).
-- **Token estimation:** Byte count / 2.2 (calibrated from empirical data: ~2.35 bytes/token for technical markdown + code, using 2.2 to conservatively overestimate by ~7%)
+- **Token estimation:** Byte count / 3.0 (calibrated against Xenova/claude-tokenizer on 50+ real sessions: avg error +0.1%, avg |error| 7.5%)
 - **Session ID safety:** Always passed explicitly (via user argument or hook stdin). Never guessed from filesystem timestamps.

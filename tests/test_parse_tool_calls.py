@@ -24,21 +24,20 @@ class TestCountWords:
 class TestEstimateTokens:
    def test_ascii(self, parse_mod):
       text = "a" * 220
-      # 220 bytes / 2.2 = 100.0 → int() = 100, but float rounding gives 99
-      # Use int(220 / 2.2) to match the actual implementation
-      assert parse_mod.estimate_tokens(text) == int(220 / 2.2)
+      # 220 bytes / 3.0 = 73.3 → int() = 73
+      assert parse_mod.estimate_tokens(text) == int(220 / 3.0)
 
    def test_empty(self, parse_mod):
       assert parse_mod.estimate_tokens("") == 0
 
    def test_unicode(self, parse_mod):
-      # Each ä is 2 UTF-8 bytes, so 10 * 2 = 20 bytes / 2.2 ≈ 9
+      # Each ä is 2 UTF-8 bytes, so 10 * 2 = 20 bytes / 3.0 ≈ 6
       text = "ä" * 10
-      assert parse_mod.estimate_tokens(text) == int(20 / 2.2)
+      assert parse_mod.estimate_tokens(text) == int(20 / 3.0)
 
    def test_bytes_input(self, parse_mod):
       data = b"hello world"  # 11 bytes
-      assert parse_mod.estimate_tokens(data) == int(11 / 2.2)
+      assert parse_mod.estimate_tokens(data) == int(11 / 3.0)
 
 
 # ── summarize_tool_call ──────────────────────────────────────────────────────

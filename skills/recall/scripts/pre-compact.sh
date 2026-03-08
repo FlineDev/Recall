@@ -83,31 +83,34 @@ print(f\"TAIL_TOKENS='{d.get('tail_tokens', d.get('final_tokens', d['original_to
 " 2>/dev/null)"
 
       if [ "$CONDENSED" = "yes" ]; then
-         STATS_BLOCK="=== RECALL STATS ===
-Session: ${SESSION_ID}
-Original transcript: ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
-Condensation: YES — older context summarized by Sonnet
-  Verbatim tail: ${VERBATIM_PCT}% of original (last ${TAIL_EXCHANGES} exchanges, ~${TAIL_TOKENS} tokens)
-  Summarized: ${SUMMARIZED_PCT}% of original (older exchanges condensed by Sonnet)
-  Dropped: ${DROPPED_PCT}% (earliest exchanges beyond context cap)
-Final size: ~${FINAL_TOKENS} tokens
-Full transcript: /tmp/recall-${SESSION_ID}.md"
+         STATS_BLOCK="## Recall Stats
+
+- **Session:** ${SESSION_ID}
+- **Original transcript:** ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
+- **Condensation:** YES — older context summarized by Sonnet
+  - Verbatim tail: ${VERBATIM_PCT}% of original (last ${TAIL_EXCHANGES} exchanges, ~${TAIL_TOKENS} tokens)
+  - Summarized: ${SUMMARIZED_PCT}% of original (older exchanges condensed by Sonnet)
+  - Dropped: ${DROPPED_PCT}% (earliest exchanges beyond context cap)
+- **Final size:** ~${FINAL_TOKENS} tokens
+- **Full transcript:** /tmp/recall-${SESSION_ID}.md"
       else
-         STATS_BLOCK="=== RECALL STATS ===
-Session: ${SESSION_ID}
-Original transcript: ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
-Condensation: NO — full transcript preserved (100% verbatim)
-Final size: ~${FINAL_TOKENS} tokens
-Full transcript: /tmp/recall-${SESSION_ID}.md"
+         STATS_BLOCK="## Recall Stats
+
+- **Session:** ${SESSION_ID}
+- **Original transcript:** ~${ORIGINAL_TOKENS} tokens (${TOTAL_EXCHANGES} exchanges)
+- **Condensation:** NO — full transcript preserved (100% verbatim)
+- **Final size:** ~${FINAL_TOKENS} tokens
+- **Full transcript:** /tmp/recall-${SESSION_ID}.md"
       fi
 
       # Clean up stats file
       rm -f "$STATS_FILE"
    else
       # Fallback if stats file missing
-      STATS_BLOCK="=== RECALL STATS ===
-Session: ${SESSION_ID}
-(Stats unavailable — condensation status unknown)"
+      STATS_BLOCK="## Recall Stats
+
+- **Session:** ${SESSION_ID}
+- *(Stats unavailable — condensation status unknown)*"
    fi
 
    cat > "$CONTEXT_FILE" << HEADER

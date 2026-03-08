@@ -28,7 +28,7 @@ OLDER_CAP_TOKENS = 85_000     # Max tokens of older context to send to Sonnet
 # an appropriate length based on session complexity.
 # ──────────────────────────────────────────────────────────────────────────
 
-USER_HEADER_RE = re.compile(r"^--- USER #\d+ \[.*?\] \(\d+ tokens\) ---$")
+USER_HEADER_RE = re.compile(r"^> \[!NOTE\]$")
 
 
 def estimate_tokens(text):
@@ -44,22 +44,22 @@ def estimate_tokens(text):
 def parse_token_estimate(text):
    """Extract the 'Estimated tokens: ~N,NNN' value from the STATISTICS section."""
    for line in text.split("\n"):
-      if line.startswith("Estimated tokens: ~"):
+      if "**Estimated tokens:**" in line and "~" in line:
          num_str = line.split("~")[1].replace(",", "").strip()
          return int(num_str)
    return estimate_tokens(text)
 
 
 def find_conversation_start(lines):
-   """Find the line index where '=== CONVERSATION ===' starts.
+   """Find the line index where '## Conversation' starts.
 
-   Returns the index of the first line AFTER the marker + blank line.
+   Returns the index of the first line AFTER the header, blank line, and --- separator.
    """
    for i, line in enumerate(lines):
-      if line.strip() == "=== CONVERSATION ===":
-         # Skip the marker and any following blank line
+      if line.strip() == "## Conversation":
+         # Skip the header, blank lines, and --- separator
          j = i + 1
-         while j < len(lines) and lines[j].strip() == "":
+         while j < len(lines) and lines[j].strip() in ("", "---"):
             j += 1
          return j
    return 0
@@ -339,17 +339,17 @@ def cmd_combine(input_path, session_id):
 
    # Build combined output
    output = header_text
-   output += "=== SUMMARIZED OLDER CONTEXT ===\n\n"
+   output += "## Summarized Older Context\n\n"
    output += summary_text + "\n\n"
-   output += "=== RECENT CONVERSATION (VERBATIM) ===\n\n"
+   output += "## Recent Conversation (Verbatim)\n\n"
    output += tail_text
 
    # Update token estimate
    new_tokens = estimate_tokens(output)
    updated_lines = []
    for line in output.split("\n"):
-      if line.startswith("Estimated tokens: ~"):
-         updated_lines.append(f"Estimated tokens: ~{new_tokens:,}")
+      if "**Estimated tokens:**" in line and "~" in line:
+         updated_lines.append(f"- **Estimated tokens:** ~{new_tokens:,}")
       else:
          updated_lines.append(line)
    output = "\n".join(updated_lines)

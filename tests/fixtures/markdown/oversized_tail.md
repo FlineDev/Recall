@@ -1,111 +1,163 @@
-=== SESSION RESUME ===
-Project: /home/alex/projects/tasktracker
-Branch: main
-Session ID: test-session-m03
-Transcript: /tmp/test-m03.jsonl
-Started: 2026-01-15T14:00:00
-Last activity: 2026-01-15T15:00:00
-Original transcript: 120 KB (200 lines)
+## Session Resume
 
-=== STATISTICS ===
-User messages: 10
-Assistant responses: 10
-Tool calls: 15
-Subagent calls: 0
-Estimated tokens: ~8,000
+- **Project:** /home/alex/projects/tasktracker
+- **Branch:** main
+- **Session ID:** test-session-m03
+- **Transcript:** /tmp/test-m03.jsonl
+- **Started:** 2026-01-15T14:00:00
+- **Last activity:** 2026-01-15T15:00:00
+- **Original transcript:** 120 KB (200 lines)
 
-=== CONVERSATION ===
+## Statistics
 
---- USER #1 [2026-01-15T14:00:00] (20 tokens) ---
-Set up the project for async
+- **User messages:** 10
+- **Assistant responses:** 10
+- **Tool calls:** 15
+- **Subagent calls:** 0
+- **Estimated tokens:** ~8,000
 
---- TOOLS (1 calls / 40 tokens) ---
-  Edit: Cargo.toml
+## Conversation
 
---- ASSISTANT (15 words / 40 tokens) ---
+---
+
+> [!NOTE]
+> **User #1** · 2026-01-15T14:00:00 · 20 tokens
+>
+> Set up the project for async
+
+> **Tools** (1 calls / 40 tokens)
+> Edit: Cargo.toml
+
+**Assistant** · 15 words / 40 tokens
+
 Adding tokio to dependencies.
 
---- USER #2 [2026-01-15T14:05:00] (20 tokens) ---
-Convert main to async
+---
 
---- TOOLS (1 calls / 50 tokens) ---
-  Edit: src/main.rs
+> [!NOTE]
+> **User #2** · 2026-01-15T14:05:00 · 20 tokens
+>
+> Convert main to async
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 50 tokens)
+> Edit: src/main.rs
+
+**Assistant** · 15 words / 40 tokens
+
 Changed main() to #[tokio::main] async fn main().
 
---- USER #3 [2026-01-15T14:10:00] (20 tokens) ---
-Make storage async
+---
 
---- TOOLS (1 calls / 60 tokens) ---
-  Edit: src/storage/mod.rs
+> [!NOTE]
+> **User #3** · 2026-01-15T14:10:00 · 20 tokens
+>
+> Make storage async
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 60 tokens)
+> Edit: src/storage/mod.rs
+
+**Assistant** · 15 words / 40 tokens
+
 Using tokio::fs for file operations.
 
---- USER #4 [2026-01-15T14:15:00] (20 tokens) ---
-Convert add command
+---
 
---- TOOLS (1 calls / 40 tokens) ---
-  Edit: src/commands/add.rs
+> [!NOTE]
+> **User #4** · 2026-01-15T14:15:00 · 20 tokens
+>
+> Convert add command
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 40 tokens)
+> Edit: src/commands/add.rs
+
+**Assistant** · 15 words / 40 tokens
+
 The add command now awaits storage operations.
 
---- USER #5 [2026-01-15T14:20:00] (20 tokens) ---
-Convert list command
+---
 
---- TOOLS (1 calls / 40 tokens) ---
-  Edit: src/commands/list.rs
+> [!NOTE]
+> **User #5** · 2026-01-15T14:20:00 · 20 tokens
+>
+> Convert list command
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 40 tokens)
+> Edit: src/commands/list.rs
+
+**Assistant** · 15 words / 40 tokens
+
 List command uses async task loading.
 
---- USER #6 [2026-01-15T14:25:00] (20 tokens) ---
-Convert filter command
+---
 
---- TOOLS (1 calls / 45 tokens) ---
-  Edit: src/commands/filter.rs
+> [!NOTE]
+> **User #6** · 2026-01-15T14:25:00 · 20 tokens
+>
+> Convert filter command
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 45 tokens)
+> Edit: src/commands/filter.rs
+
+**Assistant** · 15 words / 40 tokens
+
 Filter applies async loading then sync filtering.
 
---- USER #7 [2026-01-15T14:30:00] (20 tokens) ---
-Convert complete command
+---
 
---- TOOLS (1 calls / 40 tokens) ---
-  Edit: src/commands/complete.rs
+> [!NOTE]
+> **User #7** · 2026-01-15T14:30:00 · 20 tokens
+>
+> Convert complete command
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 40 tokens)
+> Edit: src/commands/complete.rs
+
+**Assistant** · 15 words / 40 tokens
+
 Complete command awaits both load and save.
 
---- USER #8 [2026-01-15T14:35:00] (20 tokens) ---
-Convert delete command
+---
 
---- TOOLS (1 calls / 40 tokens) ---
-  Edit: src/commands/delete.rs
+> [!NOTE]
+> **User #8** · 2026-01-15T14:35:00 · 20 tokens
+>
+> Convert delete command
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 40 tokens)
+> Edit: src/commands/delete.rs
+
+**Assistant** · 15 words / 40 tokens
+
 Delete command is now fully async.
 
---- USER #9 [2026-01-15T14:40:00] (20 tokens) ---
-Update test helpers
+---
 
---- TOOLS (1 calls / 50 tokens) ---
-  Edit: tests/test_helpers.rs
+> [!NOTE]
+> **User #9** · 2026-01-15T14:40:00 · 20 tokens
+>
+> Update test helpers
 
---- ASSISTANT (15 words / 40 tokens) ---
+> **Tools** (1 calls / 50 tokens)
+> Edit: tests/test_helpers.rs
+
+**Assistant** · 15 words / 40 tokens
+
 Test utilities now use #[tokio::test].
 
---- USER #10 [2026-01-15T14:45:00] (30 tokens) ---
-Give me a comprehensive summary of all the async changes and any remaining issues.
+---
 
---- TOOLS (3 calls / 120 tokens) ---
-  Bash: cargo test 2>&1
-  Bash: cargo clippy 2>&1
-  Bash: git diff --stat
+> [!NOTE]
+> **User #10** · 2026-01-15T14:45:00 · 30 tokens
+>
+> Give me a comprehensive summary of all the async changes and any remaining issues.
 
---- ASSISTANT (799 words / 3196 tokens) ---
+> **Tools** (3 calls / 120 tokens)
+> Bash: cargo test 2>&1
+> Bash: cargo clippy 2>&1
+> Bash: git diff --stat
+
+**Assistant** · 799 words / 3196 tokens
+
 Here is a comprehensive summary of the async/await migration for TaskTracker.
 
 ## Overview of Changes
@@ -157,3 +209,5 @@ There are three known issues that should be addressed in follow-up PRs:
 ## Conclusion
 
 The async migration is functionally complete for the core command handlers and storage layer. All 24 existing tests pass with the async versions. Clippy reports no warnings. The code is formatted with cargo fmt. The git diff shows 12 files changed with 180 insertions and 95 deletions, indicating a relatively clean migration with more new async boilerplate than removed synchronous code.   
+
+---

@@ -272,7 +272,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "=== SESSION RESUME ===" in output
+      assert "## Session Resume" in output
 
    def test_contains_statistics_section(self, parse_mod):
       output = parse_mod.format_output(
@@ -280,7 +280,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "=== STATISTICS ===" in output
+      assert "## Statistics" in output
 
    def test_contains_conversation_section(self, parse_mod):
       output = parse_mod.format_output(
@@ -288,7 +288,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "=== CONVERSATION ===" in output
+      assert "## Conversation" in output
 
    def test_user_entry_format(self, parse_mod):
       output = parse_mod.format_output(
@@ -296,9 +296,9 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      # User entries formatted as "--- USER #N [...] (X tokens) ---"
-      assert "--- USER #1 [" in output
-      assert "tokens) ---" in output
+      # User entries formatted as "> [!NOTE]" callout with "> **User #N** · ..."
+      assert "> [!NOTE]" in output
+      assert "> **User #1**" in output
 
    def test_compaction_entry_format(self, parse_mod):
       entries = [
@@ -320,7 +320,7 @@ class TestFormatOutput:
       output = parse_mod.format_output(
          entries, self._make_metadata(), 5000, 20, "/tmp/test.jsonl",
       )
-      assert "[=== COMPACTION #1 (auto, 45,000 tokens before) ===]" in output
+      assert "> **Compaction #1** (auto, 45,000 tokens before)" in output
 
    def test_microcompaction_entry_format(self, parse_mod):
       entries = [
@@ -342,7 +342,7 @@ class TestFormatOutput:
       output = parse_mod.format_output(
          entries, self._make_metadata(), 5000, 20, "/tmp/test.jsonl",
       )
-      assert "[=== MICROCOMPACTION #1 ===]" in output
+      assert "> **Microcompaction #1**" in output
 
    def test_tool_entries_formatted_with_count(self, parse_mod):
       entries = [
@@ -365,7 +365,7 @@ class TestFormatOutput:
       output = parse_mod.format_output(
          entries, self._make_metadata(), 5000, 20, "/tmp/test.jsonl",
       )
-      assert "--- TOOLS (2 calls" in output
+      assert "> **Tools** (2 calls" in output
 
    def test_single_tool_no_plural(self, parse_mod):
       entries = [
@@ -387,7 +387,7 @@ class TestFormatOutput:
       output = parse_mod.format_output(
          entries, self._make_metadata(), 5000, 20, "/tmp/test.jsonl",
       )
-      assert "--- TOOLS (1 call /" in output
+      assert "> **Tools** (1 call /" in output
 
    def test_estimated_tokens_line(self, parse_mod):
       output = parse_mod.format_output(
@@ -421,19 +421,19 @@ class TestFormatOutput:
       output = parse_mod.format_output(
          entries, self._make_metadata(), 5000, 20, "/tmp/test.jsonl",
       )
-      assert "=== FILES TOUCHED ===" in output
+      assert "## Files Touched" in output
       assert "~/projects/file.rs" in output
-      # Full path should NOT appear in the FILES TOUCHED section
+      # Full path should NOT appear in the Files Touched section
       lines = output.split("\n")
       files_section = False
       for line in lines:
-         if "=== FILES TOUCHED ===" in line:
+         if "## Files Touched" in line:
             files_section = True
             continue
-         if files_section and line.startswith("==="):
+         if files_section and line.startswith("##"):
             break
          if files_section and "/home/alex/projects/file.rs" in line:
-            pytest.fail("Full home path should be shortened in FILES TOUCHED")
+            pytest.fail("Full home path should be shortened in Files Touched")
 
    def test_no_truncation_line_in_output(self, parse_mod):
       metadata = self._make_metadata()

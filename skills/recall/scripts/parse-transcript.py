@@ -614,26 +614,27 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    session_id = metadata.get("session_id", "")
    unknown_types = metadata.get("unknown_types", {})
 
-   output.append("=== SESSION RESUME ===")
+   output.append("## Session Resume")
+   output.append("")
    if session_summary:
-      output.append(f"Summary: {session_summary}")
-   output.append(f"Project: {cwd}")
-   output.append(f"Branch: {branch}")
+      output.append(f"- **Summary:** {session_summary}")
+   output.append(f"- **Project:** {cwd}")
+   output.append(f"- **Branch:** {branch}")
    if perm:
-      output.append(f"Permission mode: {perm}")
+      output.append(f"- **Permission mode:** {perm}")
    if session_id:
-      output.append(f"Session ID: {session_id}")
-   output.append(f"Transcript: {transcript_path}")
+      output.append(f"- **Session ID:** {session_id}")
+   output.append(f"- **Transcript:** {transcript_path}")
    if start:
-      output.append(f"Started: {start[:19]}")
+      output.append(f"- **Started:** {start[:19]}")
    if end:
-      output.append(f"Last activity: {end[:19]}")
+      output.append(f"- **Last activity:** {end[:19]}")
    output.append(
-      f"Original transcript: {total_bytes / 1024 / 1024:.1f} MB ({total_lines} lines)"
+      f"- **Original transcript:** {total_bytes / 1024 / 1024:.1f} MB ({total_lines} lines)"
    )
    if compactions:
       output.append(
-         f"Compactions: {compactions} (summaries stripped, {stripped_bytes:,} bytes saved)"
+         f"- **Compactions:** {compactions} (summaries stripped, {stripped_bytes:,} bytes saved)"
       )
    output.append("")
 
@@ -651,17 +652,19 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
       if tc["name"] == "Agent"
    )
 
-   output.append("=== STATISTICS ===")
-   output.append(f"User messages: {user_msgs}")
-   output.append(f"Assistant responses: {assistant_msgs}")
-   output.append(f"Tool calls: {total_tool_calls}")
-   output.append(f"Subagent calls: {agent_calls}")
+   output.append("## Statistics")
+   output.append("")
+   output.append(f"- **User messages:** {user_msgs}")
+   output.append(f"- **Assistant responses:** {assistant_msgs}")
+   output.append(f"- **Tool calls:** {total_tool_calls}")
+   output.append(f"- **Subagent calls:** {agent_calls}")
    output.append("")
 
    # File operations
    files = collect_file_operations(entries)
    if files:
-      output.append("=== FILES TOUCHED ===")
+      output.append("## Files Touched")
+      output.append("")
       sorted_files = sorted(
          files.items(),
          key=lambda x: (
@@ -678,19 +681,16 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
             parts.append(f"edited {ops['edits']}x")
          if ops["writes"]:
             parts.append(f"written {ops['writes']}x")
-         output.append(f"  {short_path} ({', '.join(parts)})")
+         output.append(f"- `{short_path}` ({', '.join(parts)})")
       output.append("")
 
    # Skills loaded
    skills = collect_skills_loaded(entries)
    if skills:
-      output.append("=== SKILLS LOADED ===")
-      output.append(
-         "Skills provide domain-specific context. Consider re-loading relevant ones"
-      )
-      output.append("for the pending work (e.g. /skillname).")
+      output.append("## Skills Loaded")
+      output.append("")
       for skill_name, args in skills:
-         line = f"  - {skill_name}"
+         line = f"- {skill_name}"
          if args:
             line += f" (args: {args})"
          output.append(line)
@@ -698,15 +698,20 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
 
    # Warnings about unknown entry types
    if unknown_types:
-      output.append("=== WARNINGS ===")
+      output.append("## Warnings")
+      output.append("")
       output.append("Unknown entry types encountered (may indicate transcript format changes):")
+      output.append("")
       for type_key, count in sorted(unknown_types.items()):
-         output.append(f"  {type_key}: {count} entries skipped")
+         output.append(f"- {type_key}: {count} entries skipped")
+      output.append("")
       output.append("Consider updating the recall skill if these are important.")
       output.append("")
 
    # Conversation
-   output.append("=== CONVERSATION ===")
+   output.append("## Conversation")
+   output.append("")
+   output.append("---")
    output.append("")
 
    exchange_num = 0
@@ -719,12 +724,12 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
          pre_tokens = entry["pre_tokens"]
          kind = entry.get("kind", "compact")
          if kind == "microcompact":
-            output.append(
-               f"[=== MICROCOMPACTION #{num} ===]"
-            )
+            output.append("> [!WARNING]")
+            output.append(f"> **Microcompaction #{num}**")
          else:
+            output.append("> [!WARNING]")
             output.append(
-               f"[=== COMPACTION #{num} ({trigger}, {pre_tokens:,} tokens before) ===]"
+               f"> **Compaction #{num}** ({trigger}, {pre_tokens:,} tokens before)"
             )
          output.append("")
 
@@ -735,15 +740,18 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
          tr_count = entry.get("tool_results_count", 0)
          tr_bytes = entry.get("tool_results_bytes", 0)
          if tr_count:
-            tr_tokens = int(tr_bytes / 2.2)
+            tr_tokens = int(tr_bytes / 3.0)
             content_lines.append(
-               f"  [+ {tr_count} tool results returned, ~{tr_tokens:,} tokens]"
+               f"[+ {tr_count} tool results returned, ~{tr_tokens:,} tokens]"
             )
          entry_tokens = estimate_tokens("\n".join(content_lines))
+         output.append("> [!NOTE]")
          output.append(
-            f"--- USER #{exchange_num} [{ts}] ({entry_tokens} tokens) ---"
+            f"> **User #{exchange_num}** · {ts} · {entry_tokens} tokens"
          )
-         output.extend(content_lines)
+         output.append(">")
+         for line in content_lines:
+            output.append(f"> {line}")
          output.append("")
 
       elif role == "assistant":
@@ -752,31 +760,34 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
             words = count_words(texts_combined)
             entry_tokens = estimate_tokens(texts_combined)
             output.append(
-               f"--- ASSISTANT ({words} words / {entry_tokens} tokens) ---"
+               f"**Assistant** · {words} words / {entry_tokens} tokens"
             )
+            output.append("")
             for text in entry["texts"]:
                output.append(text.strip())
             output.append("")
 
          if entry.get("tool_calls"):
             n = len(entry["tool_calls"])
-            tools_text = "\n".join(f"  {tc['summary']}" for tc in entry["tool_calls"])
+            tools_text = "\n".join(tc['summary'] for tc in entry["tool_calls"])
             entry_tokens = estimate_tokens(tools_text)
             output.append(
-               f"--- TOOLS ({n} call{'s' if n > 1 else ''} / {entry_tokens} tokens) ---"
+               f"> **Tools** ({n} call{'s' if n > 1 else ''} / {entry_tokens} tokens)"
             )
             for tc in entry["tool_calls"]:
-               output.append(f"  {tc['summary']}")
+               output.append(f"> {tc['summary']}")
+            output.append("")
+            output.append("---")
             output.append("")
 
    # Add token estimate at the very end
    full_text = "\n".join(output)
    est_tokens = estimate_tokens(full_text)
-   # Insert token estimate into the header (after STATISTICS)
-   stats_line = f"Estimated tokens: ~{est_tokens:,}"
+   # Insert token estimate into the header (after Statistics)
+   stats_line = f"- **Estimated tokens:** ~{est_tokens:,}"
    # Find the right place to insert
    for idx, line in enumerate(output):
-      if line == "=== STATISTICS ===":
+      if line == "## Statistics":
          # Find the empty line after stats
          for j in range(idx + 1, len(output)):
             if output[j] == "":

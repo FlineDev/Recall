@@ -64,5 +64,5 @@ All fixtures use a fictional **"TaskTracker" Rust CLI project** with user "alex"
 
 - Scripts have hyphens in names → imported via `importlib` in conftest.py
 - HOME is monkeypatched to `/home/alex` for stable path shortening assertions
-- Token estimation: `len(text.encode('utf-8')) / 2.2`
+- Token estimation: `len(text.encode('utf-8')) / 3.0`
 - `condense-tail.py` handles splitting/combining, and `pre-compact.sh` makes a single `claude -p --model sonnet` call when needed

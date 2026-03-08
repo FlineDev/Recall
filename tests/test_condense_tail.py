@@ -15,16 +15,22 @@ def make_exchange(user_num, user_tokens=50, asst_words=30, asst_tokens=80,
                   tools_calls=1, tools_tokens=40, extra_text=""):
    """Build a single exchange (user + tools + assistant) as markdown lines."""
    lines = []
-   lines.append(f"--- USER #{user_num} [2026-01-15T10:00:00] ({user_tokens} tokens) ---\n")
-   lines.append(f"User message number {user_num}. " + "x " * (user_tokens // 3) + "\n")
+   user_text = f"User message number {user_num}. " + "x " * (user_tokens // 3)
+   lines.append("> [!NOTE]\n")
+   lines.append(f"> **User #{user_num}** · 2026-01-15T10:00:00 · {user_tokens} tokens\n")
+   lines.append(">\n")
+   lines.append(f"> {user_text}\n")
    lines.append("\n")
-   lines.append(f"--- TOOLS ({tools_calls} call / {tools_tokens} tokens) ---\n")
-   lines.append(f"  Read: ~/projects/tasktracker/src/main.rs\n")
+   lines.append(f"> **Tools** ({tools_calls} call / {tools_tokens} tokens)\n")
+   lines.append(f"> Read: `~/projects/tasktracker/src/main.rs`\n")
    lines.append("\n")
-   lines.append(f"--- ASSISTANT ({asst_words} words / {asst_tokens} tokens) ---\n")
+   lines.append(f"**Assistant** · {asst_words} words / {asst_tokens} tokens\n")
+   lines.append("\n")
    lines.append(f"Assistant response for message {user_num}. " + "y " * (asst_words // 2) + "\n")
    if extra_text:
       lines.append(extra_text + "\n")
+   lines.append("\n")
+   lines.append("---\n")
    lines.append("\n")
    return lines
 
@@ -35,25 +41,27 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    Each exchange is padded to approximately tokens_per_exchange tokens.
    """
    header = (
-      "=== SESSION RESUME ===\n"
-      "Project: /home/alex/projects/tasktracker\n"
-      "Branch: main\n"
-      "Session ID: test-session-12345678\n"
-      "Started: 2026-01-15T09:00:00\n"
-      "Last activity: 2026-01-15T18:00:00\n"
+      "## Session Resume\n"
       "\n"
-      "=== STATISTICS ===\n"
-      f"User messages: {num_exchanges}\n"
-      f"Assistant responses: {num_exchanges}\n"
-      f"Tool calls: {num_exchanges}\n"
-      "Subagent calls: 0\n"
+      "- **Project:** /home/alex/projects/tasktracker\n"
+      "- **Branch:** main\n"
+      "- **Session ID:** test-session-12345678\n"
+      "- **Started:** 2026-01-15T09:00:00\n"
+      "- **Last activity:** 2026-01-15T18:00:00\n"
+      "\n"
+      "## Statistics\n"
+      "\n"
+      f"- **User messages:** {num_exchanges}\n"
+      f"- **Assistant responses:** {num_exchanges}\n"
+      f"- **Tool calls:** {num_exchanges}\n"
+      "- **Subagent calls:** 0\n"
    )
 
    # Build conversation
-   conversation_lines = ["=== CONVERSATION ===\n", "\n"]
+   conversation_lines = ["## Conversation\n", "\n", "---\n", "\n"]
    for i in range(1, num_exchanges + 1):
       # Pad each exchange to target size
-      padding_chars = max(0, int(tokens_per_exchange * 2.2) - 200)
+      padding_chars = max(0, int(tokens_per_exchange * 3.0) - 200)
       extra = "z " * (padding_chars // 2) if padding_chars > 0 else ""
       exchange = make_exchange(i, extra_text=extra)
       conversation_lines.extend(exchange)
@@ -61,12 +69,12 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    conversation_text = "".join(conversation_lines)
 
    # Calculate total and set header token estimate
-   total_text = header + "Estimated tokens: ~0\n\n" + conversation_text
-   est_tokens = int(len(total_text.encode("utf-8")) / 2.2)
+   total_text = header + "- **Estimated tokens:** ~0\n\n" + conversation_text
+   est_tokens = int(len(total_text.encode("utf-8")) / 3.0)
    if header_tokens is not None:
       est_tokens = header_tokens
 
-   header += f"Estimated tokens: ~{est_tokens:,}\n"
+   header += f"- **Estimated tokens:** ~{est_tokens:,}\n"
    header += "\n"
 
    return header + conversation_text
@@ -81,7 +89,7 @@ class TestEstimateTokens:
 
    def test_known_string(self, condense_mod):
       text = "Hello, world!"
-      assert condense_mod.estimate_tokens(text) == int(len(text.encode("utf-8")) / 2.2)
+      assert condense_mod.estimate_tokens(text) == int(len(text.encode("utf-8")) / 3.0)
 
 
 # ── parse_token_estimate ──────────────────────────────────────────────────
@@ -89,11 +97,11 @@ class TestEstimateTokens:
 
 class TestParseTokenEstimate:
    def test_parses_from_statistics(self, condense_mod):
-      text = "=== STATISTICS ===\nEstimated tokens: ~27,793\n"
+      text = "## Statistics\n\n- **Estimated tokens:** ~27,793\n"
       assert condense_mod.parse_token_estimate(text) == 27793
 
    def test_parses_no_comma(self, condense_mod):
-      text = "Estimated tokens: ~5000\n"
+      text = "- **Estimated tokens:** ~5000\n"
       assert condense_mod.parse_token_estimate(text) == 5000
 
    def test_fallback_when_missing(self, condense_mod):
@@ -147,7 +155,7 @@ class TestSplitAtExchangeBoundary:
       assert len(tail) > 0
       # Tail must start with a USER header
       first_tail = tail[0].strip()
-      assert first_tail.startswith("--- USER #")
+      assert first_tail == "> [!NOTE]"
 
    def test_respects_target_approximately(self, condense_mod):
       """Tail tokens should be roughly near the target."""
@@ -229,7 +237,7 @@ class TestCmdSplit:
       condense_mod.cmd_split(str(p), "testtail1234")
       tail = Path("/tmp/recall-tail-testtail.md").read_text()
       first_line = tail.split("\n")[0].strip()
-      assert first_line.startswith("--- USER #")
+      assert first_line == "> [!NOTE]"
       self._cleanup("testtail")
 
    def test_prompt_file_contains_key_instructions(self, condense_mod, tmp_path):
@@ -273,16 +281,16 @@ class TestCmdCombine:
       result = condense_mod.cmd_combine(str(p), "testcomb12345678")
       assert result == 0
       output = p.read_text()
-      assert "=== SUMMARIZED OLDER CONTEXT ===" in output
-      assert "=== RECENT CONVERSATION (VERBATIM) ===" in output
+      assert "## Summarized Older Context" in output
+      assert "## Recent Conversation (Verbatim)" in output
 
    def test_combine_preserves_header(self, condense_mod, tmp_path):
       """Combined output still has SESSION RESUME and STATISTICS."""
       p, prefix = self._setup_combine(condense_mod, tmp_path)
       condense_mod.cmd_combine(str(p), "testcomb12345678")
       output = p.read_text()
-      assert "=== SESSION RESUME ===" in output
-      assert "=== STATISTICS ===" in output
+      assert "## Session Resume" in output
+      assert "## Statistics" in output
 
    def test_combine_updates_token_estimate(self, condense_mod, tmp_path):
       """Token estimate is updated after combining."""
@@ -290,7 +298,7 @@ class TestCmdCombine:
       condense_mod.cmd_combine(str(p), "testcomb12345678")
       output = p.read_text()
       # Should have an updated token estimate
-      match = re.search(r"Estimated tokens: ~([\d,]+)", output)
+      match = re.search(r"\*\*Estimated tokens:\*\* ~([\d,]+)", output)
       assert match is not None
       tokens = int(match.group(1).replace(",", ""))
       assert tokens > 0
@@ -333,22 +341,22 @@ class TestCompactionMarkers:
       for i in range(1, 6):
          lines.extend(make_exchange(i, extra_text="padding " * 200))
       # Insert a compaction marker between exchanges 2 and 3
-      marker = "[=== COMPACTION #1 (auto, 50000 tokens before) ===]\n"
-      # Find where exchange 3 starts
+      marker_lines = ["> [!WARNING]\n", "> **Compaction #1** (auto, 50,000 tokens before)\n", "\n"]
+      # Find where exchange 3 starts (> [!NOTE] line)
       exchange3_start = None
       count = 0
       for idx, line in enumerate(lines):
-         if line.strip().startswith("--- USER #"):
+         if line.strip() == "> [!NOTE]":
             count += 1
             if count == 3:
                exchange3_start = idx
                break
-      lines.insert(exchange3_start, "\n")
-      lines.insert(exchange3_start, marker)
+      for i, ml in enumerate(marker_lines):
+         lines.insert(exchange3_start + i, ml)
 
       older, tail = condense_mod.split_at_exchange_boundary(lines, 2000)
       combined = "".join(older) + "".join(tail)
-      assert "COMPACTION #1" in combined
+      assert "Compaction #1" in combined
 
 
 # ── Stats JSON ───────────────────────────────────────────────────────────

@@ -1260,39 +1260,48 @@ def gen_f16_mixed_content_user():
 # ═══════════════════════════════════════════════════════════
 
 MD_HEADER_TEMPLATE = """\
-=== SESSION RESUME ===
-Project: /home/alex/projects/tasktracker
-Branch: {branch}
-Session ID: {session_id}
-Transcript: /tmp/{transcript}
-Started: {started}
-Last activity: {last_activity}
-Original transcript: {size} ({lines} lines)
+## Session Resume
 
-=== STATISTICS ===
-User messages: {user_msgs}
-Assistant responses: {assistant_msgs}
-Tool calls: {tool_calls}
-Subagent calls: {subagent_calls}
-Estimated tokens: ~{tokens:,}
+- **Project:** /home/alex/projects/tasktracker
+- **Branch:** {branch}
+- **Session ID:** {session_id}
+- **Transcript:** /tmp/{transcript}
+- **Started:** {started}
+- **Last activity:** {last_activity}
+- **Original transcript:** {size} ({lines} lines)
 
-=== CONVERSATION ===
+## Statistics
+
+- **User messages:** {user_msgs}
+- **Assistant responses:** {assistant_msgs}
+- **Tool calls:** {tool_calls}
+- **Subagent calls:** {subagent_calls}
+- **Estimated tokens:** ~{tokens:,}
+
+## Conversation
+
+---
 """
 
 
 def md_user(num, timestamp, tokens, text):
-   return f"\n--- USER #{num} [{timestamp}] ({tokens} tokens) ---\n{text}\n"
+   return (
+      f"\n> [!NOTE]\n"
+      f"> **User #{num}** · {timestamp} · {tokens} tokens\n"
+      f">\n"
+      f"> {text}\n"
+   )
 
 
 def md_tools(calls, tokens, entries):
-   lines = f"\n--- TOOLS ({calls} calls / {tokens} tokens) ---\n"
+   lines = f"\n> **Tools** ({calls} calls / {tokens} tokens)\n"
    for entry in entries:
-      lines += f"  {entry}\n"
+      lines += f"> {entry}\n"
    return lines
 
 
 def md_assistant(words, tokens, text):
-   return f"\n--- ASSISTANT ({words} words / {tokens} tokens) ---\n{text}\n"
+   return f"\n**Assistant** · {words} words / {tokens} tokens\n\n{text}\n\n---\n"
 
 
 def gen_m01_small():
