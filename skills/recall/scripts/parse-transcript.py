@@ -614,7 +614,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    session_id = metadata.get("session_id", "")
    unknown_types = metadata.get("unknown_types", {})
 
-   output.append("# Session Resume")
+   output.append("## Session Resume")
    output.append("")
    if session_summary:
       output.append(f"- **Summary:** {session_summary}")
@@ -652,7 +652,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
       if tc["name"] == "Agent"
    )
 
-   output.append("# Statistics")
+   output.append("## Statistics")
    output.append("")
    output.append(f"- **User messages:** {user_msgs}")
    output.append(f"- **Assistant responses:** {assistant_msgs}")
@@ -663,7 +663,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    # File operations
    files = collect_file_operations(entries)
    if files:
-      output.append("# Files Touched")
+      output.append("## Files Touched")
       output.append("")
       sorted_files = sorted(
          files.items(),
@@ -687,7 +687,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    # Skills loaded
    skills = collect_skills_loaded(entries)
    if skills:
-      output.append("# Skills Loaded")
+      output.append("## Skills Loaded")
       output.append("")
       for skill_name, args in skills:
          line = f"- {skill_name}"
@@ -698,7 +698,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
 
    # Warnings about unknown entry types
    if unknown_types:
-      output.append("# Warnings")
+      output.append("## Warnings")
       output.append("")
       output.append("Unknown entry types encountered (may indicate transcript format changes):")
       output.append("")
@@ -709,9 +709,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
       output.append("")
 
    # Conversation
-   output.append("# Conversation")
-   output.append("")
-   output.append("---")
+   output.append("## Conversation")
    output.append("")
 
    exchange_num = 0
@@ -745,11 +743,12 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
                f"[+ {tr_count} tool results returned, ~{tr_tokens:,} tokens]"
             )
          entry_tokens = estimate_tokens("\n".join(content_lines))
-         output.append("> [!NOTE]")
+         output.append("---")
+         output.append("")
          output.append(
-            f"> **User #{exchange_num}** · {ts} · {entry_tokens} tokens"
+            f"**User #{exchange_num}** · {ts} · {entry_tokens} tokens"
          )
-         output.append(">")
+         output.append("")
          for line in content_lines:
             output.append(f"> {line}")
          output.append("")
@@ -777,8 +776,6 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
             for tc in entry["tool_calls"]:
                output.append(f"> {tc['summary']}")
             output.append("")
-            output.append("---")
-            output.append("")
 
    # Add token estimate at the very end
    full_text = "\n".join(output)
@@ -787,7 +784,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    stats_line = f"- **Estimated tokens:** ~{est_tokens:,}"
    # Find the right place to insert
    for idx, line in enumerate(output):
-      if line == "# Statistics":
+      if line == "## Statistics":
          # Find the empty line after stats
          for j in range(idx + 1, len(output)):
             if output[j] == "":

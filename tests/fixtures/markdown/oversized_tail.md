@@ -1,4 +1,4 @@
-# Session Resume
+## Session Resume
 
 - **Project:** /home/alex/projects/tasktracker
 - **Branch:** main
@@ -8,7 +8,7 @@
 - **Last activity:** 2026-01-15T15:00:00
 - **Original transcript:** 120 KB (200 lines)
 
-# Statistics
+## Statistics
 
 - **User messages:** 10
 - **Assistant responses:** 10
@@ -16,13 +16,12 @@
 - **Subagent calls:** 0
 - **Estimated tokens:** ~8,000
 
-# Conversation
+## Conversation
 
 ---
 
-> [!NOTE]
-> **User #1** · 2026-01-15T14:00:00 · 20 tokens
->
+**User #1** · 2026-01-15T14:00:00 · 20 tokens
+
 > Set up the project for async
 
 > **Tools** (1 calls / 40 tokens)
@@ -34,9 +33,8 @@ Adding tokio to dependencies.
 
 ---
 
-> [!NOTE]
-> **User #2** · 2026-01-15T14:05:00 · 20 tokens
->
+**User #2** · 2026-01-15T14:05:00 · 20 tokens
+
 > Convert main to async
 
 > **Tools** (1 calls / 50 tokens)
@@ -48,9 +46,8 @@ Changed main() to #[tokio::main] async fn main().
 
 ---
 
-> [!NOTE]
-> **User #3** · 2026-01-15T14:10:00 · 20 tokens
->
+**User #3** · 2026-01-15T14:10:00 · 20 tokens
+
 > Make storage async
 
 > **Tools** (1 calls / 60 tokens)
@@ -62,9 +59,8 @@ Using tokio::fs for file operations.
 
 ---
 
-> [!NOTE]
-> **User #4** · 2026-01-15T14:15:00 · 20 tokens
->
+**User #4** · 2026-01-15T14:15:00 · 20 tokens
+
 > Convert add command
 
 > **Tools** (1 calls / 40 tokens)
@@ -76,9 +72,8 @@ The add command now awaits storage operations.
 
 ---
 
-> [!NOTE]
-> **User #5** · 2026-01-15T14:20:00 · 20 tokens
->
+**User #5** · 2026-01-15T14:20:00 · 20 tokens
+
 > Convert list command
 
 > **Tools** (1 calls / 40 tokens)
@@ -90,9 +85,8 @@ List command uses async task loading.
 
 ---
 
-> [!NOTE]
-> **User #6** · 2026-01-15T14:25:00 · 20 tokens
->
+**User #6** · 2026-01-15T14:25:00 · 20 tokens
+
 > Convert filter command
 
 > **Tools** (1 calls / 45 tokens)
@@ -104,9 +98,8 @@ Filter applies async loading then sync filtering.
 
 ---
 
-> [!NOTE]
-> **User #7** · 2026-01-15T14:30:00 · 20 tokens
->
+**User #7** · 2026-01-15T14:30:00 · 20 tokens
+
 > Convert complete command
 
 > **Tools** (1 calls / 40 tokens)
@@ -118,9 +111,8 @@ Complete command awaits both load and save.
 
 ---
 
-> [!NOTE]
-> **User #8** · 2026-01-15T14:35:00 · 20 tokens
->
+**User #8** · 2026-01-15T14:35:00 · 20 tokens
+
 > Convert delete command
 
 > **Tools** (1 calls / 40 tokens)
@@ -132,9 +124,8 @@ Delete command is now fully async.
 
 ---
 
-> [!NOTE]
-> **User #9** · 2026-01-15T14:40:00 · 20 tokens
->
+**User #9** · 2026-01-15T14:40:00 · 20 tokens
+
 > Update test helpers
 
 > **Tools** (1 calls / 50 tokens)
@@ -146,9 +137,8 @@ Test utilities now use #[tokio::test].
 
 ---
 
-> [!NOTE]
-> **User #10** · 2026-01-15T14:45:00 · 30 tokens
->
+**User #10** · 2026-01-15T14:45:00 · 30 tokens
+
 > Give me a comprehensive summary of all the async changes and any remaining issues.
 
 > **Tools** (3 calls / 120 tokens)
@@ -209,5 +199,3 @@ There are three known issues that should be addressed in follow-up PRs:
 ## Conclusion
 
 The async migration is functionally complete for the core command handlers and storage layer. All 24 existing tests pass with the async versions. Clippy reports no warnings. The code is formatted with cargo fmt. The git diff shows 12 files changed with 180 insertions and 95 deletions, indicating a relatively clean migration with more new async boilerplate than removed synchronous code.   
-
----

@@ -28,7 +28,7 @@ OLDER_CAP_TOKENS = 85_000     # Max tokens of older context to send to Sonnet
 # an appropriate length based on session complexity.
 # ──────────────────────────────────────────────────────────────────────────
 
-USER_HEADER_RE = re.compile(r"^> \[!NOTE\]$")
+USER_HEADER_RE = re.compile(r"^\*\*User #\d+\*\* · .+ · \d+ tokens$")
 
 
 def estimate_tokens(text):
@@ -51,15 +51,15 @@ def parse_token_estimate(text):
 
 
 def find_conversation_start(lines):
-   """Find the line index where '# Conversation' starts.
+   """Find the line index where '## Conversation' starts.
 
-   Returns the index of the first line AFTER the header, blank line, and --- separator.
+   Returns the index of the first line AFTER the header and blank line.
    """
    for i, line in enumerate(lines):
-      if line.strip() == "# Conversation":
-         # Skip the header, blank lines, and --- separator
+      if line.strip() == "## Conversation":
+         # Skip the header and any following blank lines
          j = i + 1
-         while j < len(lines) and lines[j].strip() in ("", "---"):
+         while j < len(lines) and lines[j].strip() == "":
             j += 1
          return j
    return 0
@@ -79,16 +79,22 @@ def parse_exchanges(lines):
 
    for i, line in enumerate(lines):
       if USER_HEADER_RE.match(line.strip()):
+         # Include the --- separator and blank line before the user header
+         exchange_start = i
+         if i >= 2 and lines[i - 1].strip() == "" and lines[i - 2].strip() == "---":
+            exchange_start = i - 2
+         elif i >= 1 and lines[i - 1].strip() == "---":
+            exchange_start = i - 1
          if current_start is not None:
             # Close previous exchange
-            exchange_text = "".join(lines[current_start:i])
+            exchange_text = "".join(lines[current_start:exchange_start])
             exchanges.append({
                "start_idx": current_start,
-               "end_idx": i,
+               "end_idx": exchange_start,
                "tokens": estimate_tokens(exchange_text),
-               "lines": lines[current_start:i],
+               "lines": lines[current_start:exchange_start],
             })
-         current_start = i
+         current_start = exchange_start
 
    # Close the last exchange
    if current_start is not None:
@@ -339,11 +345,11 @@ def cmd_combine(input_path, session_id):
 
    # Build combined output
    output = header_text
-   output += "# Summarized Older Context\n\n"
+   output += "## Summarized Older Context\n\n"
    # Blockquote the summary to visually separate it from conversation
    quoted_summary = "\n".join(f"> {line}" if line.strip() else ">" for line in summary_text.split("\n"))
    output += quoted_summary + "\n\n"
-   output += "# Recent Conversation (Verbatim)\n\n"
+   output += "## Recent Conversation (Verbatim)\n\n"
    output += tail_text
 
    # Update token estimate

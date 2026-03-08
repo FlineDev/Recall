@@ -79,7 +79,7 @@ Read the full output carefully. From the complete conversation history (all user
 - Code files that are actively being worked on (edited but work not yet finished)
 - Configuration or data files needed for the pending task
 - Documentation files that provide essential context — but ONLY if NOT already loaded by CLAUDE.md / AGENTS.md (those load automatically at session start)
-- **Skills from the previous session** — Check the `# Skills Loaded` section. If any skills provided domain-specific context needed for the pending work (e.g. build tools, API workflows, coding guidelines), re-load them with `/skillname`. Skills already listed in the system-reminder don't need re-loading — they're available automatically.
+- **Skills from the previous session** — Check the `## Skills Loaded` section. If any skills provided domain-specific context needed for the pending work (e.g. build tools, API workflows, coding guidelines), re-load them with `/skillname`. Skills already listed in the system-reminder don't need re-loading — they're available automatically.
 
 **Typically skip:**
 - Files that were read once for a completed task (the work is done)

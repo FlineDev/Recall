@@ -7,7 +7,7 @@ Claude Code's built-in compaction.
 
 For comparison, see what Claude Code produces by default: [compaction-summary.md](compaction-summary.md) (~3,500 tokens)
 
-# Session Resume
+## Session Resume
 
 - **Project:** /Users/dev/Projects/TaskTracker
 - **Branch:** feature/recurring-tasks
@@ -17,7 +17,7 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 - **Original transcript:** 3.2 MB (1,847 lines)
 - **Compactions:** 2 (summaries stripped, 24,310 bytes saved)
 
-# Statistics
+## Statistics
 
 - **User messages:** 38
 - **Assistant responses:** 142
@@ -25,7 +25,7 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 - **Subagent calls:** 3
 - **Estimated tokens:** ~18,450
 
-# Files Touched
+## Files Touched
 
 - `Sources/Models/RecurrenceRule.swift` (read 6x, edited 8x, written 1x)
 - `Sources/Models/TaskOccurrence.swift` (read 3x, edited 4x, written 1x)
@@ -37,17 +37,16 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 - `Tests/RecurrenceIntegrationTests.swift` (read 2x, edited 3x, written 1x)
 - `Package.swift` (read 1x)
 
-# Skills Loaded
+## Skills Loaded
 
 - app-dev-context
 
-# Conversation
+## Conversation
 
 ---
 
-> [!NOTE]
-> **User #1** · 2026-03-05T09:15:32 · 187 tokens
->
+**User #1** · 2026-03-05T09:15:32 · 187 tokens
+
 > I want to add recurring tasks to TaskTracker. Users should be able to set a task to repeat daily, weekly, monthly, or on a custom interval. When a recurring task is completed, the next occurrence should be automatically created. Here's what I'm thinking:
 >
 > - Each task can optionally have a RecurrenceRule
@@ -98,9 +97,8 @@ Created both models. Now let me update the Core Data model to add these entities
 
 ---
 
-> [!NOTE]
-> **User #2** · 2026-03-05T09:32:18 · 43 tokens
->
+**User #2** · 2026-03-05T09:32:18 · 43 tokens
+
 > Looks good. But I want the intervalType to use a String raw value, not Int16 — easier to debug in the SQLite file. Can you change that?
 
 **Assistant** · 34 words / 92 tokens
@@ -117,9 +115,8 @@ Done. The `intervalType` is now stored as a String in Core Data (`daily`, `weekl
 
 ---
 
-> [!NOTE]
-> **User #3** · 2026-03-05T09:38:45 · 62 tokens
->
+**User #3** · 2026-03-05T09:38:45 · 62 tokens
+
 > Now let's build the UI. I want a recurrence picker that shows up as a section in the task detail view. It should show a preview of the next 3 upcoming dates so the user can verify the pattern is correct.
 
 **Assistant** · 45 words / 122 tokens
@@ -157,9 +154,8 @@ Added the recurrence section. It only shows when the recurrence toggle is on.
 
 ---
 
-> [!NOTE]
-> **User #4** · 2026-03-05T09:52:11 · 89 tokens
->
+**User #4** · 2026-03-05T09:52:11 · 89 tokens
+
 > I just realized — we need a Core Data migration. The app already shipped v1 of the model to users. We can't just swap in v2. Can you set up a lightweight migration? And if lightweight doesn't work because of the new relationships, we might need a mapping model.
 
 **Assistant** · 167 words / 454 tokens
@@ -185,9 +181,8 @@ Added `NSMigratePersistentStoresAutomaticallyOption` and `NSInferMappingModelAut
 
 ---
 
-> [!NOTE]
-> **User #5** · 2026-03-05T10:04:33 · 34 tokens
->
+**User #5** · 2026-03-05T10:04:33 · 34 tokens
+
 > Great, let's add unit tests for the recurrence date calculations. Those are the trickiest part — especially month boundaries and DST.
 
 **Assistant** · 56 words / 152 tokens
@@ -247,9 +242,8 @@ All 12 tests pass now. The month-boundary clamping works correctly.
 
 ---
 
-> [!NOTE]
-> **User #6** · 2026-03-05T10:28:17 · 78 tokens
->
+**User #6** · 2026-03-05T10:28:17 · 78 tokens
+
 > Good catch on the clamping. Now I need the "skip this occurrence" feature. When you skip, it should:
 > 1. Mark the current occurrence as skipped (not completed)
 > 2. Create the next occurrence automatically
@@ -274,9 +268,8 @@ Added:
 
 ---
 
-> [!NOTE]
-> **User #7** · 2026-03-05T10:41:55 · 29 tokens
->
+**User #7** · 2026-03-05T10:41:55 · 29 tokens
+
 > The migration is failing in the simulator. I get: "Can't find mapping model for migration from v1 to v2"
 
 **Assistant** · 78 words / 212 tokens
@@ -307,9 +300,8 @@ Try running in the simulator again. The lightweight migration should work now.
 
 ---
 
-> [!NOTE]
-> **User #8** · 2026-03-05T10:55:33 · 18 tokens
->
+**User #8** · 2026-03-05T10:55:33 · 18 tokens
+
 > Works now! Migration is smooth. Let's add the integration tests.
 
 **Assistant** · 89 words / 241 tokens
@@ -349,9 +341,8 @@ The weekly recurrence with specific days (Mon, Wed, Fri) generated Tuesday inste
 
 ---
 
-> [!NOTE]
-> **User #9** · 2026-03-05T11:08:22 · 56 tokens
->
+**User #9** · 2026-03-05T11:08:22 · 56 tokens
+
 > While you're at it, I also want to handle timezone changes. If someone sets a daily task at 9am and then travels to a different timezone, it should still fire at 9am local time, not at the UTC equivalent.
 
 **Assistant** · 145 words / 394 tokens
@@ -397,9 +388,8 @@ All 15 tests pass, including the DST tests. The timezone-aware recurrence is wor
 
 ---
 
-> [!NOTE]
-> **User #10** · 2026-03-05T11:25:44 · 42 tokens
->
+**User #10** · 2026-03-05T11:25:44 · 42 tokens
+
 > Let's fix that failing weekly integration test too, then commit everything.
 
 **Assistant** · 12 words / 32 tokens
@@ -431,9 +421,8 @@ Committed. 9 files changed: 2 new models, 1 new view, 3 edited views, 1 Core Dat
 
 ---
 
-> [!NOTE]
-> **User #11** · 2026-03-05T11:38:09 · 87 tokens
->
+**User #11** · 2026-03-05T11:38:09 · 87 tokens
+
 > One more thing — I want the recurrence picker to also support "weekdays only" and "weekends only" as quick presets, in addition to the custom day selector. And the preview should show the actual day names, not just dates. Like "Mon Mar 9, Wed Mar 11, Fri Mar 13" instead of "2026-03-09, 2026-03-11, 2026-03-13".
 
 **Assistant** · 67 words / 182 tokens
@@ -463,9 +452,8 @@ All 47 tests pass. The UI changes don't affect the underlying recurrence logic.
 
 ---
 
-> [!NOTE]
-> **User #12** · 2026-03-05T11:52:41 · 112 tokens
->
+**User #12** · 2026-03-05T11:52:41 · 112 tokens
+
 > Actually wait. I changed my mind about the timezone handling. I think we should store occurrences in UTC and only display in local time. The current approach of recomputing with Calendar.current could create duplicates if the timezone changes between when the occurrence was created and when it fires. Apple's approach works for system-level Calendar events but we're managing our own persistence. What do you think?
 
 **Assistant** · 234 words / 635 tokens
@@ -509,9 +497,8 @@ Reverted to UTC storage:
 
 ---
 
-> [!NOTE]
-> **User #13** · 2026-03-05T12:08:55 · 23 tokens
->
+**User #13** · 2026-03-05T12:08:55 · 23 tokens
+
 > Perfect. Commit that change separately so we have clean history.
 
 **Assistant** · 34 words / 92 tokens
@@ -528,9 +515,8 @@ Committed. Clean history with the timezone decision isolated.
 
 ---
 
-> [!NOTE]
-> **User #14** · 2026-03-05T12:15:33 · 78 tokens
->
+**User #14** · 2026-03-05T12:15:33 · 78 tokens
+
 > Now let's write more edge case tests. I want to make sure these scenarios work:
 > 1. Completing a task after its scheduled date (late completion)
 > 2. Completing multiple occurrences in rapid succession
@@ -590,9 +576,8 @@ All 51 tests pass (19 recurrence unit + 6 integration + 26 existing).
 
 ---
 
-> [!NOTE]
-> **User #15** · 2026-03-05T12:32:18 · 45 tokens
->
+**User #15** · 2026-03-05T12:32:18 · 45 tokens
+
 > Can you also add a test for what happens when a user changes the recurrence interval on an existing task? Like switching from weekly to daily — does it recompute from the last occurrence correctly?
 
 **Assistant** · 78 words / 212 tokens
@@ -613,9 +598,8 @@ Pass. The test verifies: task with weekly recurrence (last occurrence Mar 5), in
 
 ---
 
-> [!NOTE]
-> **User #16** · 2026-03-05T12:45:11 · 56 tokens
->
+**User #16** · 2026-03-05T12:45:11 · 56 tokens
+
 > Excellent. Now I want the integration tests to also cover the full cycle: create → complete → skip → complete → change interval → complete. One test that walks through a realistic user journey.
 
 **Assistant** · 89 words / 241 tokens
@@ -649,9 +633,8 @@ Pass. The full lifecycle works correctly end-to-end.
 
 ---
 
-> [!NOTE]
-> **User #17** · 2026-03-05T12:58:33 · 34 tokens
->
+**User #17** · 2026-03-05T12:58:33 · 34 tokens
+
 > Commit all the new tests. Then I want to tackle DST boundary handling — we punted on that earlier. Can you think about what edge cases matter for UTC storage?
 
 **Assistant** · 45 words / 122 tokens
@@ -687,9 +670,8 @@ Should I add tests for these scenarios to document the behavior, even though the
 
 ---
 
-> [!NOTE]
-> **User #18** · 2026-03-05T14:42:08 · 23 tokens
->
+**User #18** · 2026-03-05T14:42:08 · 23 tokens
+
 > Yes, add documentation tests. Then let's commit everything and I want to start on the integration tests for the create-recur-complete cycle across DST.
 
 **Assistant** · 56 words / 152 tokens

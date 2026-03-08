@@ -272,7 +272,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "# Session Resume" in output
+      assert "## Session Resume" in output
 
    def test_contains_statistics_section(self, parse_mod):
       output = parse_mod.format_output(
@@ -280,7 +280,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "# Statistics" in output
+      assert "## Statistics" in output
 
    def test_contains_conversation_section(self, parse_mod):
       output = parse_mod.format_output(
@@ -288,7 +288,7 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      assert "# Conversation" in output
+      assert "## Conversation" in output
 
    def test_user_entry_format(self, parse_mod):
       output = parse_mod.format_output(
@@ -296,9 +296,9 @@ class TestFormatOutput:
          self._make_metadata(),
          5000, 20, "/tmp/test.jsonl",
       )
-      # User entries formatted as "> [!NOTE]" callout with "> **User #N** · ..."
-      assert "> [!NOTE]" in output
-      assert "> **User #1**" in output
+      # User entries formatted as "**User #N** · ..." with blockquoted content
+      assert "**User #1**" in output
+      assert "> " in output  # Content is blockquoted
 
    def test_compaction_entry_format(self, parse_mod):
       entries = [
@@ -421,16 +421,16 @@ class TestFormatOutput:
       output = parse_mod.format_output(
          entries, self._make_metadata(), 5000, 20, "/tmp/test.jsonl",
       )
-      assert "# Files Touched" in output
+      assert "## Files Touched" in output
       assert "~/projects/file.rs" in output
       # Full path should NOT appear in the Files Touched section
       lines = output.split("\n")
       files_section = False
       for line in lines:
-         if "# Files Touched" in line:
+         if "## Files Touched" in line:
             files_section = True
             continue
-         if files_section and line.startswith("#"):
+         if files_section and line.startswith("##"):
             break
          if files_section and "/home/alex/projects/file.rs" in line:
             pytest.fail("Full home path should be shortened in Files Touched")

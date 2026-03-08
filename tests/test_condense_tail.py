@@ -16,9 +16,10 @@ def make_exchange(user_num, user_tokens=50, asst_words=30, asst_tokens=80,
    """Build a single exchange (user + tools + assistant) as markdown lines."""
    lines = []
    user_text = f"User message number {user_num}. " + "x " * (user_tokens // 3)
-   lines.append("> [!NOTE]\n")
-   lines.append(f"> **User #{user_num}** · 2026-01-15T10:00:00 · {user_tokens} tokens\n")
-   lines.append(">\n")
+   lines.append("---\n")
+   lines.append("\n")
+   lines.append(f"**User #{user_num}** · 2026-01-15T10:00:00 · {user_tokens} tokens\n")
+   lines.append("\n")
    lines.append(f"> {user_text}\n")
    lines.append("\n")
    lines.append(f"> **Tools** ({tools_calls} call / {tools_tokens} tokens)\n")
@@ -30,8 +31,6 @@ def make_exchange(user_num, user_tokens=50, asst_words=30, asst_tokens=80,
    if extra_text:
       lines.append(extra_text + "\n")
    lines.append("\n")
-   lines.append("---\n")
-   lines.append("\n")
    return lines
 
 
@@ -41,7 +40,7 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    Each exchange is padded to approximately tokens_per_exchange tokens.
    """
    header = (
-      "# Session Resume\n"
+      "## Session Resume\n"
       "\n"
       "- **Project:** /home/alex/projects/tasktracker\n"
       "- **Branch:** main\n"
@@ -49,7 +48,7 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
       "- **Started:** 2026-01-15T09:00:00\n"
       "- **Last activity:** 2026-01-15T18:00:00\n"
       "\n"
-      "# Statistics\n"
+      "## Statistics\n"
       "\n"
       f"- **User messages:** {num_exchanges}\n"
       f"- **Assistant responses:** {num_exchanges}\n"
@@ -58,7 +57,7 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    )
 
    # Build conversation
-   conversation_lines = ["# Conversation\n", "\n", "---\n", "\n"]
+   conversation_lines = ["## Conversation\n", "\n"]
    for i in range(1, num_exchanges + 1):
       # Pad each exchange to target size
       padding_chars = max(0, int(tokens_per_exchange * 3.0) - 200)
@@ -97,7 +96,7 @@ class TestEstimateTokens:
 
 class TestParseTokenEstimate:
    def test_parses_from_statistics(self, condense_mod):
-      text = "# Statistics\n\n- **Estimated tokens:** ~27,793\n"
+      text = "## Statistics\n\n- **Estimated tokens:** ~27,793\n"
       assert condense_mod.parse_token_estimate(text) == 27793
 
    def test_parses_no_comma(self, condense_mod):
@@ -155,7 +154,7 @@ class TestSplitAtExchangeBoundary:
       assert len(tail) > 0
       # Tail must start with a USER header
       first_tail = tail[0].strip()
-      assert first_tail == "> [!NOTE]"
+      assert first_tail == "---"
 
    def test_respects_target_approximately(self, condense_mod):
       """Tail tokens should be roughly near the target."""
@@ -237,7 +236,7 @@ class TestCmdSplit:
       condense_mod.cmd_split(str(p), "testtail1234")
       tail = Path("/tmp/recall-tail-testtail.md").read_text()
       first_line = tail.split("\n")[0].strip()
-      assert first_line == "> [!NOTE]"
+      assert first_line == "---"
       self._cleanup("testtail")
 
    def test_prompt_file_contains_key_instructions(self, condense_mod, tmp_path):
@@ -281,16 +280,16 @@ class TestCmdCombine:
       result = condense_mod.cmd_combine(str(p), "testcomb12345678")
       assert result == 0
       output = p.read_text()
-      assert "# Summarized Older Context" in output
-      assert "# Recent Conversation (Verbatim)" in output
+      assert "## Summarized Older Context" in output
+      assert "## Recent Conversation (Verbatim)" in output
 
    def test_combine_preserves_header(self, condense_mod, tmp_path):
       """Combined output still has SESSION RESUME and STATISTICS."""
       p, prefix = self._setup_combine(condense_mod, tmp_path)
       condense_mod.cmd_combine(str(p), "testcomb12345678")
       output = p.read_text()
-      assert "# Session Resume" in output
-      assert "# Statistics" in output
+      assert "## Session Resume" in output
+      assert "## Statistics" in output
 
    def test_combine_updates_token_estimate(self, condense_mod, tmp_path):
       """Token estimate is updated after combining."""
@@ -342,14 +341,15 @@ class TestCompactionMarkers:
          lines.extend(make_exchange(i, extra_text="padding " * 200))
       # Insert a compaction marker between exchanges 2 and 3
       marker_lines = ["> [!WARNING]\n", "> **Compaction #1** (auto, 50,000 tokens before)\n", "\n"]
-      # Find where exchange 3 starts (> [!NOTE] line)
+      # Find where exchange 3 starts (--- line before **User #3**)
       exchange3_start = None
       count = 0
       for idx, line in enumerate(lines):
-         if line.strip() == "> [!NOTE]":
+         if re.match(r"^\*\*User #\d+\*\*", line.strip()):
             count += 1
             if count == 3:
-               exchange3_start = idx
+               # Go back to the --- separator
+               exchange3_start = idx - 2 if idx >= 2 and lines[idx - 2].strip() == "---" else idx
                break
       for i, ml in enumerate(marker_lines):
          lines.insert(exchange3_start + i, ml)

@@ -1260,7 +1260,7 @@ def gen_f16_mixed_content_user():
 # ═══════════════════════════════════════════════════════════
 
 MD_HEADER_TEMPLATE = """\
-# Session Resume
+## Session Resume
 
 - **Project:** /home/alex/projects/tasktracker
 - **Branch:** {branch}
@@ -1270,7 +1270,7 @@ MD_HEADER_TEMPLATE = """\
 - **Last activity:** {last_activity}
 - **Original transcript:** {size} ({lines} lines)
 
-# Statistics
+## Statistics
 
 - **User messages:** {user_msgs}
 - **Assistant responses:** {assistant_msgs}
@@ -1278,17 +1278,15 @@ MD_HEADER_TEMPLATE = """\
 - **Subagent calls:** {subagent_calls}
 - **Estimated tokens:** ~{tokens:,}
 
-# Conversation
-
----
+## Conversation
 """
 
 
 def md_user(num, timestamp, tokens, text):
    return (
-      f"\n> [!NOTE]\n"
-      f"> **User #{num}** · {timestamp} · {tokens} tokens\n"
-      f">\n"
+      f"\n---\n\n"
+      f"**User #{num}** · {timestamp} · {tokens} tokens\n"
+      f"\n"
       f"> {text}\n"
    )
 
@@ -1301,7 +1299,7 @@ def md_tools(calls, tokens, entries):
 
 
 def md_assistant(words, tokens, text):
-   return f"\n**Assistant** · {words} words / {tokens} tokens\n\n{text}\n\n---\n"
+   return f"\n**Assistant** · {words} words / {tokens} tokens\n\n{text}\n"
 
 
 def gen_m01_small():
