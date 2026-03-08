@@ -42,6 +42,8 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
    header = (
       "## Session Resume\n"
       "\n"
+      "Field | Value\n"
+      "---|---\n"
       "Project | /home/alex/projects/tasktracker\n"
       "Branch | main\n"
       "Session ID | test-session-12345678\n"
@@ -50,6 +52,8 @@ def make_transcript(num_exchanges, tokens_per_exchange=500, header_tokens=None):
       "\n"
       "## Statistics\n"
       "\n"
+      "Metric | Count\n"
+      "---|---\n"
       f"User messages | {num_exchanges}\n"
       f"Assistant responses | {num_exchanges}\n"
       f"Tool calls | {num_exchanges}\n"

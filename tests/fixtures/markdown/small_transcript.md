@@ -1,5 +1,7 @@
 ## Session Resume
 
+Field | Value
+---|---
 Project | /home/alex/projects/tasktracker
 Branch | main
 Session ID | test-session-m01
@@ -10,6 +12,8 @@ Original transcript | 45 KB (50 lines)
 
 ## Statistics
 
+Metric | Count
+---|---
 User messages | 5
 Assistant responses | 5
 Tool calls | 8

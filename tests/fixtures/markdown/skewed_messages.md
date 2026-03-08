@@ -1,5 +1,7 @@
 ## Session Resume
 
+Field | Value
+---|---
 Project | /home/alex/projects/tasktracker
 Branch | refactor/modules
 Session ID | test-session-m05
@@ -10,6 +12,8 @@ Original transcript | 280 KB (400 lines)
 
 ## Statistics
 
+Metric | Count
+---|---
 User messages | 22
 Assistant responses | 22
 Tool calls | 30

@@ -238,7 +238,7 @@ def parse_session(transcript_path):
    # Known entry types we handle or intentionally skip
    known_types = {
       "user", "assistant", "progress", "file-history-snapshot",
-      "queue-operation", "summary",
+      "queue-operation", "summary", "last-prompt",
    }
    known_system_subtypes = {
       "compact_boundary", "microcompact_boundary",
@@ -616,6 +616,8 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
 
    output.append("## Session Resume")
    output.append("")
+   output.append("Field | Value")
+   output.append("---|---")
    resume_rows = []
    if session_summary:
       resume_rows.append(("Summary", session_summary))
@@ -657,6 +659,8 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
 
    output.append("## Statistics")
    output.append("")
+   output.append("Metric | Count")
+   output.append("---|---")
    output.append(f"User messages | {user_msgs}")
    output.append(f"Assistant responses | {assistant_msgs}")
    output.append(f"Tool calls | {total_tool_calls}")
@@ -790,13 +794,13 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
    est_tokens = estimate_tokens(full_text)
    # Insert token estimate into the header (after Statistics)
    stats_line = f"Estimated tokens | ~{est_tokens:,}"
-   # Find the right place to insert
+   # Find the right place to insert (last row before the blank line ending the table)
    for idx, line in enumerate(output):
       if line == "## Statistics":
-         # Find the empty line after stats
+         # Find the Subagent calls row and insert after it
          for j in range(idx + 1, len(output)):
-            if output[j] == "":
-               output.insert(j, stats_line)
+            if output[j].startswith("Subagent calls |"):
+               output.insert(j + 1, stats_line)
                break
          break
 

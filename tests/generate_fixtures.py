@@ -1262,6 +1262,8 @@ def gen_f16_mixed_content_user():
 MD_HEADER_TEMPLATE = """\
 ## Session Resume
 
+Field | Value
+---|---
 Project | /home/alex/projects/tasktracker
 Branch | {branch}
 Session ID | {session_id}
@@ -1272,6 +1274,8 @@ Original transcript | {size} ({lines} lines)
 
 ## Statistics
 
+Metric | Count
+---|---
 User messages | {user_msgs}
 Assistant responses | {assistant_msgs}
 Tool calls | {tool_calls}

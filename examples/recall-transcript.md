@@ -9,6 +9,8 @@ For comparison, see what Claude Code produces by default: [compaction-summary.md
 
 ## Session Resume
 
+Field | Value
+---|---
 Project | /Users/dev/Projects/TaskTracker
 Branch | feature/recurring-tasks
 Session ID | a1b2c3d4-e5f6-7890-abcd-ef1234567890
@@ -19,6 +21,8 @@ Compactions | 2 (summaries stripped, 24,310 bytes saved)
 
 ## Statistics
 
+Metric | Count
+---|---
 User messages | 38
 Assistant responses | 142
 Tool calls | 127
