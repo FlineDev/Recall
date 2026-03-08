@@ -50,13 +50,4 @@ Append this line (if not already present):
 
 Tell the user:
 
-**Recall is configured for this project.** Here's what happens now:
-
-- **Automatic recovery**: When compaction happens (auto or via `/compact`), Recall parses the full conversation transcript and loads it back into context via the `@.claude/recall-context.md` reference. You'll see a status line like:
-  ```
-  Recall loaded: ~17K tokens (54% verbatim, 46% summarized)
-  ```
-- **Manual recall**: Run `/recall <session-id>` in any new session to load a previous session's transcript. The session ID is printed when you exit Claude Code.
-- **Nothing else to configure.** The hooks (PreCompact + SessionStart) are registered automatically by the plugin system. The `.claude/recall-context.md` file is auto-generated, auto-cleaned, and gitignored.
-
-**Tip:** To test it right now, run `/compact` — you should see the Recall status line appear after compaction completes.
+**Recall is configured.** Recovery after compaction is now automatic. Run `/compact` to test it, or use `/recall <session-id>` to load a previous session.

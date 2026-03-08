@@ -10,27 +10,19 @@ argument-hint: "<session-id>"
 
 Recall a previous Claude Code session with much richer context than auto-compaction provides. Keeps ALL user messages and assistant responses verbatim while achieving 99%+ compression.
 
-## Two Use Cases
+## Background
 
-### Use Case 1: New Session (manual)
+Two hooks handle automatic recovery (no action needed):
+- **PreCompact** parses the transcript and writes to `.claude/recall-context.md`
+- **SessionStart** cleans up the recall file to prevent stale content
 
-When exiting Claude Code, the session ID is printed. User copies it, starts a new session, runs `/recall <id>`.
-
-### Use Case 2: After Compaction (automatic via hooks)
-
-Two hooks work together automatically:
-- **PreCompact** parses the transcript and (if needed) summarizes large sessions using a single `claude -p --model sonnet` call
-- **SessionStart** cleans up the recall file after it's been read (prevents stale content from persisting)
-
-When installed as a plugin, both hooks are registered automatically via `hooks/hooks.json`. No manual configuration needed.
+This skill handles **manual recall** — when the user runs `/recall <session-id>` in a new session.
 
 ## Execution Steps
 
-These steps apply to **Use Case 1** (manual `/recall <id>`). For Use Case 2, everything is handled automatically by the hooks — no action needed.
+### Step 1: Parse the transcript
 
-### Step 1: Run the parser
-
-The "Base directory for this skill" is provided above in the skill metadata. Use it directly — symlinks are followed automatically, no need for `readlink` or `find`:
+The "Base directory for this skill" is provided above in the skill metadata. Use it directly:
 
 ```bash
 python3 <BASE_DIRECTORY>/scripts/parse-transcript.py <SESSION_ID> --cwd "$(pwd)" > /tmp/recall-<SESSION_ID>.md 2>/dev/null
@@ -38,62 +30,80 @@ python3 <BASE_DIRECTORY>/scripts/parse-transcript.py <SESSION_ID> --cwd "$(pwd)"
 
 Replace `<SESSION_ID>` with the value from `{{args}}`.
 
-### Step 1b: Condense if needed (large sessions only)
-
-Check the token estimate in the output file. If it exceeds 20K tokens, run the condensation script:
+### Step 2: Condense if needed
 
 ```bash
 python3 <BASE_DIRECTORY>/scripts/condense-tail.py split /tmp/recall-<SESSION_ID>.md <SESSION_ID>
 ```
 
-If exit code is 0 (condensation needed), run a single Sonnet call and combine:
+- **Exit code 2:** Transcript is ≤20K tokens — no condensation needed. Skip to Step 3.
+- **Exit code 0:** Condensation needed. Three files were created:
+  - `/tmp/recall-older-<SID_PREFIX>.md` — older context that needs summarizing
+  - `/tmp/recall-tail-<SID_PREFIX>.md` — recent exchanges (kept verbatim)
+  - `/tmp/recall-prompt-<SID_PREFIX>.txt` — summarization prompt
 
-```bash
-SID_PREFIX="${SESSION_ID:0:8}"
-unset CLAUDECODE
-cat "/tmp/recall-older-${SID_PREFIX}.md" | \
-  claude -p --model sonnet --no-session-persistence \
-    "$(cat /tmp/recall-prompt-${SID_PREFIX}.txt)" \
-    > "/tmp/recall-summary-${SID_PREFIX}.md"
-python3 <BASE_DIRECTORY>/scripts/condense-tail.py combine /tmp/recall-<SESSION_ID>.md <SESSION_ID>
-```
+  Where `<SID_PREFIX>` is the first 8 characters of the session ID.
 
-This sends older conversation context to a single Sonnet call for summarization (~30-40 seconds), then prepends the summary to the verbatim recent exchanges. Exit code 2 means no condensation needed (≤20K tokens).
+  **Summarize with a subagent:** Launch an Agent (subagent_type: "general-purpose", model: sonnet) with a fresh context. Pass the following prompt to the subagent:
 
-### Step 2: Analyze the condensed transcript
+  > Read the file `/tmp/recall-older-<SID_PREFIX>.md` in full. If the file is too large for a single Read call (over 2000 lines), use multiple Read calls with offset/limit to read it completely — do NOT skip any part. You must have the entire file in context before summarizing.
+  >
+  > Once you have read the full file, summarize it following these instructions:
+  >
+  > Summarize this older portion of a Claude Code conversation transcript. The recent conversation is preserved verbatim elsewhere — focus only on the earlier context here. Your summary will be injected into a future Claude session to restore lost context after compaction. Write for an AI reader who needs to continue the work seamlessly.
+  >
+  > PRIORITIES (in order):
+  > 1. User's intentions and goals — the "why" behind each request
+  > 2. Decisions and their rationale — especially alternatives that were considered and rejected
+  > 3. File paths modified, created, or deleted — exact paths matter
+  > 4. Problems encountered and solutions — especially bugs and their root causes
+  > 5. Architectural patterns established — naming conventions, key abstractions, data flow
+  > 6. User preferences and constraints stated during the conversation
+  > 7. Current state — what's done, what's in progress, what's blocked
+  >
+  > SKIP OR MINIMIZE:
+  > - File contents (just note path + purpose)
+  > - Tool output details (just note outcomes)
+  > - Reads that didn't lead to action
+  >
+  > FORMAT: Chronological narrative with bold paths and bullet lists. Start with a one-line session overview. End with precise state description.
+  >
+  > LENGTH: Be thorough but not verbose. Capture every important decision and file change without reproducing conversations verbatim. Think of it as detailed meeting notes — nothing critical missing, nothing unnecessary included.
+  >
+  > Write your summary to `/tmp/recall-summary-<SID_PREFIX>.md`. Do NOT output the summary as text — only write it to the file.
 
-Read the full output carefully. From the complete conversation history (all user messages, assistant responses, and tool call summaries), understand:
+  **Important:** Do NOT read the older context file in the main conversation — it can be up to 85K tokens and would fill the context window, defeating the purpose of summarization. The subagent handles this in its own isolated 200K context (85K fits comfortably).
+
+  After the subagent finishes, combine the results:
+
+  ```bash
+  python3 <BASE_DIRECTORY>/scripts/condense-tail.py combine /tmp/recall-<SESSION_ID>.md <SESSION_ID>
+  ```
+
+### Step 3: Read and analyze the transcript
+
+Read `/tmp/recall-<SESSION_ID>.md` — this is the final condensed transcript. From the full conversation history, understand:
 
 1. **The conversation arc** — What topics were discussed? What was the user's main goal?
 2. **The last unanswered question** — The session likely ended due to rate limit, context limit, or manual exit. What was pending?
-3. **Which files matter right now** — Use your judgment based on the full conversation, not mechanical heuristics. Consider:
-   - What work is still in progress vs. already completed?
-   - Which files were central to the ongoing task vs. read once for reference?
-   - What context do you need to continue the pending work intelligently?
+3. **Which files matter right now** — What work is still in progress vs. already completed?
 
-### Step 3: Re-read relevant files
+### Step 4: Re-read relevant files
 
-**Use your judgment.** Based on your understanding of the full conversation, re-read files that you need in order to continue the pending work. Think about what a developer would need open in their editor to pick up where they left off.
+Based on the transcript, re-read files needed to continue the pending work. Think about what a developer would need open in their editor.
 
-**Typical candidates for re-reading:**
-- Code files that are actively being worked on (edited but work not yet finished)
+**Re-read:**
+- Code files actively being worked on (edited but not yet finished)
 - Configuration or data files needed for the pending task
-- Documentation files that provide essential context — but ONLY if NOT already loaded by CLAUDE.md / AGENTS.md (those load automatically at session start)
-- **Skills from the previous session** — Check the `## Skills Loaded` section. If any skills provided domain-specific context needed for the pending work (e.g. build tools, API workflows, coding guidelines), re-load them with `/skillname`. Skills already listed in the system-reminder don't need re-loading — they're available automatically.
+- Skills from the `## Skills Loaded` section — re-load with `/skillname` if they provided domain-specific context
 
-**Typically skip:**
-- Files that were read once for a completed task (the work is done)
-- Files that are already in the current context (compaction or system may have already loaded them — check before re-reading)
-- Subagent results (their findings are summarized in assistant messages in the transcript)
-- Plan files from `~/.claude/plans/` (plan content is quoted in assistant messages)
+**Skip:**
+- Files read once for completed tasks
+- Files already in context (CLAUDE.md, AGENTS.md load automatically)
+- Subagent results (summarized in assistant messages)
+- Plan files from `~/.claude/plans/` (content is in assistant messages)
 
-**Be smart about it:** Some important files may have been read early in the session, not recently. If they're essential context for the pending work, re-read them. Conversely, recently-touched files may not need re-reading if that work is already complete.
-
-### Step 4: Resume or present summary
-
-**After compaction (Use Case 2):** Do NOT present a formal summary. Seamlessly continue working on the pending task. If nothing is pending, briefly summarize what was accomplished and ask the user what to do next.
-
-**Manual recall (Use Case 1):** Present a brief summary to the user:
+### Step 5: Present summary
 
 ```
 ## Session Resumed: <brief topic>
@@ -104,8 +114,11 @@ Read the full output carefully. From the complete conversation history (all user
 ### What was accomplished
 <Bullet list of completed work>
 
-### Pending / Unanswered
-<What the user last asked that wasn't addressed>
+### Pending / Next steps
+<Depends on how the previous session ended:>
+<- If the session was interrupted mid-task (rate limit, context limit, crash): Describe what was in progress and offer to continue, e.g. "Shall I continue with [specific task]?">
+<- If the session ended naturally (user's last request was fulfilled): Describe what the last exchange was about and what logical next steps might be, e.g. "We finished X. Next up could be Y or Z.">
+<- If unclear: State the last user message and assistant response so the user knows exactly where things stand.>
 
 ### Context loaded
 <List of files re-read and why each was needed>
@@ -114,18 +127,10 @@ Read the full output carefully. From the complete conversation history (all user
 <Brief list of files from the session that were NOT re-read, so user can correct if needed>
 ```
 
-## Terminology
-
-- **Entry**: A single block in the transcript (user `> [!NOTE]` callout, `> **Tools**` blockquote, or `**Assistant**` section)
-- **Message**: Either a "user message" (1 USER entry) or a "bot message" (all TOOLS/ASSISTANT entries following a user message). The algorithm operates on messages.
-- **Exchange**: 1 user message + 1 bot message = 2 messages
-
 ## Technical Details
 
 - **Transcript location:** `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
-- **Preserved:** ALL user messages verbatim, ALL assistant text responses verbatim, tool call summaries (name + key params), compaction markers with token counts
-- **Stripped:** Compaction summaries (redundant — we keep more detail), system reminders, tool result contents, thinking blocks, progress events
-- **No message cap:** All exchanges are preserved in the parsed output. `condense-tail.py` handles sizing.
-- **Adaptive condensation:** If output exceeds 20K tokens, the most recent ~15K tokens of exchanges are kept verbatim. Older context (up to 85K tokens) is summarized by a single `claude -p --model sonnet` call (~30-40 seconds). The summary length adapts to session complexity. Output targets 15-20K tokens (~10% of Claude Code's 200K context window).
-- **Token estimation:** Byte count / 3.0 (calibrated against Xenova/claude-tokenizer on 50+ real sessions: avg error +0.1%, avg |error| 7.5%)
-- **Session ID safety:** Always passed explicitly (via user argument or hook stdin). Never guessed from filesystem timestamps.
+- **Preserved:** ALL user messages verbatim, ALL assistant text responses verbatim, tool call summaries (name + key params), compaction markers
+- **Stripped:** Compaction summaries, system reminders, tool result contents, thinking blocks, progress events
+- **Adaptive condensation:** If output exceeds 20K tokens, recent ~15K tokens kept verbatim, older context summarized by subagent. Output targets 15-20K tokens.
+- **Token estimation:** Byte count / 3.0
