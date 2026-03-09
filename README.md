@@ -156,9 +156,9 @@ Full transcript: recall-943494ae.md
 
 ### Without auto-compaction (power mode)
 
-This is the mode Recall was designed for. Turn off auto-compaction in Claude Code settings and use **100% of your 200K context window** — no more leaving the last 15% unused out of fear that compaction will erase your progress.
+This is the mode Recall was designed for. Turn off auto-compaction via `/config` and use **100% of your 200K context window** — no more leaving the last 15% unused out of fear that compaction will erase your progress.
 
-When the context fills up, Claude Code exits and prints your session ID:
+When the context fills up, you run `/exit` and Claude Code prints your session ID:
 
 ```
 Resume this session with:
