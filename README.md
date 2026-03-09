@@ -58,7 +58,7 @@ Start Claude Code, then run:
 If you're in an active session, run `/reload-plugins` to activate immediately. Recall is part of the [FlineDev Marketplace](https://github.com/FlineDev/Marketplace) — see the full list of available plugins there.
 
 > [!TIP]
-> **Automatic Updates:** By default, third-party plugins don't auto-update. To receive new features and fixes automatically:
+> **Automatic Updates:** By default, third-party plugins don't auto-update. To receive new features and fixes:
 > 1. Type `/plugin` and press Enter
 > 2. Switch to the **Marketplaces** tab
 > 3. Navigate to **FlineDev** and press Enter
