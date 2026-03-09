@@ -1,45 +1,43 @@
 # Recall
 
-**Keep the full conversation when starting a new Claude Code session.**
+**Get the most out of Claude Code's 200K context window** — without paying for the 1M token tier.
 
-Claude Code's built-in compaction has improved a lot over time — it captures the main topics, key decisions, and important files. But a summary is still a summary. It can't preserve every detail from a long session: the exact wording of your instructions, the specific approaches that were tried and rejected, or the subtle preferences you expressed along the way. Sometimes these are exactly the details that matter when continuing the work.
+Claude Code's 200K context sounds like a lot, but ~20-25% goes to system overhead (tools, prompts, CLAUDE.md), and auto-compaction triggers at ~85%. That leaves roughly 120-130K usable tokens — and the 1M tier isn't 5x more, it's effectively **~8x** the usable context (since overhead is fixed). Recall bridges this gap by making the 200K window renewable: when context runs out, start a new session and restore everything that matters in seconds.
 
-Recall takes a different approach: instead of summarizing, it preserves your actual conversation — every user message and every assistant response in full. Only the noise is stripped (tool result contents, thinking blocks, system reminders). The result is a ~15-20K token transcript that fits comfortably into a fresh 200K context window, giving Claude the full conversation arc to pick up where you left off.
+Without Recall, compaction compresses your entire conversation into a summary. Recall preserves **far more detail** (15-18K tokens of actual conversation), giving Claude the full conversation arc to continue where you left off.
 
 ## Why Recall Exists
 
-Claude Code's compaction does a reasonable job of preserving what was discussed, but any summary will lose some detail. The longer and more nuanced the session, the more gets compressed away:
+Claude Code's built-in compaction has gotten better over time — it captures the main topics, key decisions, and important files. But a summary is inherently lossy. The longer and more nuanced the session, the more detail gets compressed away:
 
-| What a summary may lose | Why it can matter |
+| What a summary loses | Why it matters |
 |---|---|
-| Exact phrasing of user instructions | Claude may interpret your intent slightly differently |
+| Exact phrasing of user instructions | Claude may interpret your intent differently than you stated it |
 | Failed approaches & why they were abandoned | Claude might revisit something you already ruled out |
-| Nuanced architecture decisions | The rationale behind a choice gets flattened |
-| Intermediate debugging context | A related issue may need that context later |
-| File edit patterns & frequency | Less awareness of what was already changed |
-| Specific feedback & corrections | Your preferences may not carry over fully |
+| Architecture decisions & rationale | The reasoning behind a choice gets flattened into just the outcome |
+| Intermediate debugging steps | A related issue later may need that exact context |
+| File edit history & frequency | Claude loses track of what it already changed and how often |
+| Code review feedback & corrections | Your specific preferences don't carry over |
 
-None of this means compaction is bad — it works well for many sessions. But when you need the full context, a summary isn't enough.
+Recall keeps the actual conversation instead of a summary — every user message, every assistant response, every tool call. A summary can never fully replace the real thing, and when you're deep in complex work, the details matter.
 
 ### What Recall preserves
 
-Recall parses the **complete session transcript** — including context from before any previous compactions in the same session. 99%+ of noise is stripped while keeping:
+Recall parses the **complete session transcript** — including context from before any previous compactions in the same session. Even after multiple compactions, nothing is permanently lost. 99%+ of noise is stripped (tool results, thinking blocks, system reminders) while keeping:
 
 - Every user message — verbatim
 - Every assistant response — verbatim
 - Tool call summaries — which tools were called with what parameters
-- Compaction markers — so you can see where context was previously compressed
+- Compaction markers — so you can see where context was previously lost
 - Loaded skills — so they can be re-loaded after compaction
-
-Recall is most valuable when starting a fresh session to continue complex work — whether after compaction, after hitting a rate limit, or when resuming the next day.
 
 ### See the difference
 
 Both examples below show the same fictional session — adding recurring tasks to a Swift app:
 
-- **[Compaction summary](examples/compaction-summary.md)** (~3,500 tokens) — Claude Code's built-in summary. Captures the topic and key files well, but compresses details like the UTC vs. local-time debate, the weekday/weekend preset additions, and a scheduling bug caused by computing from `Date()` instead of `scheduledDate`.
+- **[Compaction summary](examples/compaction-summary.md)** (~3,500 tokens) — What Claude Code produces by default. Preserves the topic and key files, but not the details: that you debated UTC vs. local-time storage and chose UTC, that weekday/weekend presets were added, or that a scheduling bug was caused by computing from `Date()` instead of `scheduledDate`.
 
-- **[Recall transcript](examples/recall-transcript.md)** (~15,000 tokens) — What Recall produces. Every user message verbatim, every assistant response, every tool call summarized. The full conversation with all decisions, bugs, fixes, and rationale intact.
+- **[Recall transcript](examples/recall-transcript.md)** (~15,000 tokens) — What Recall produces. Every user message verbatim, every assistant response, every tool call summarized. The full conversation arc with decisions, bugs, fixes, and rationale.
 
 ## Installation
 
