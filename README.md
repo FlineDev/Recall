@@ -4,7 +4,6 @@
 
 Claude Code's 200K context sounds like a lot, but ~20-25% goes to system overhead (tools, prompts, CLAUDE.md), and auto-compaction triggers at ~85%. That leaves roughly 120-130K usable tokens — and the 1M tier isn't 5x more, it's effectively **~8x** the usable context (since overhead is fixed).
 
-> [!TIP]
 > Recall bridges this gap by making the 200K window renewable: when context runs out, start a new session and restore everything that matters in seconds.
 
 Without Recall, compaction compresses your entire conversation into a summary. Recall preserves **far more detail** (15-18K tokens of actual conversation), giving Claude the full conversation arc to continue where you left off.
@@ -56,18 +55,14 @@ Start Claude Code, then run:
 /plugin install recall
 ```
 
-If you're in an active session, run `/reload-plugins` to activate immediately. The [FlineDev Marketplace](https://github.com/FlineDev/Marketplace) has more plugins — check it out.
+If you're in an active session, run `/reload-plugins` to activate immediately. Recall is part of the [FlineDev Marketplace](https://github.com/FlineDev/Marketplace) — see the full list of available plugins there.
 
-### Automatic Updates (Optional, Recommended)
-
-By default, third-party plugins don't auto-update. To receive new features and fixes automatically:
-
-1. Type `/plugin` and press Enter
-2. Switch to the **Marketplaces** tab
-3. Navigate to **FlineDev** and press Enter
-4. Press Enter on **Enable auto-update** (it flips to "Disable auto-update" when enabled)
-
-With this enabled, Claude Code checks for plugin updates on startup and notifies you when a new version is available.
+> [!TIP]
+> **Automatic Updates:** By default, third-party plugins don't auto-update. To receive new features and fixes automatically:
+> 1. Type `/plugin` and press Enter
+> 2. Switch to the **Marketplaces** tab
+> 3. Navigate to **FlineDev** and press Enter
+> 4. Press Enter on **Enable auto-update**
 
 ### Step 2: Start using Recall
 
