@@ -171,9 +171,8 @@ Three shell scripts handle the lifecycle:
 
 ### Where Files Live
 
-- **Raw transcripts:** `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`
-  Claude Code's append-only session log
-- **Recall output:** `/tmp/recall-<session-id>.md`
-  Persists until reboot, useful for manual `/recall` across sessions
-- **Auto-injection:** `.claude/recall-context.md`
-  Written by pre-compact, read via CLAUDE.md `@`-reference, cleaned by session-start
+| File | Path | Purpose |
+|------|------|---------|
+| Raw transcripts | `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl` | Claude Code's append-only session log |
+| Recall output | `/tmp/recall-<session-id>.md` | Persists until reboot, useful for manual `/recall` across sessions |
+| Auto-injection | `.claude/recall-context.md` | Written by pre-compact, read via CLAUDE.md `@`-reference, cleaned by session-start |
