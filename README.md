@@ -72,10 +72,11 @@ In every project where you want automatic recovery, run:
 /recall:init
 ```
 
-This does three things:
+This does four things:
 1. Creates `.claude/recall-context.md` (auto-populated by the hook)
 2. Adds `@.claude/recall-context.md` as the first line of your `CLAUDE.md`
 3. Adds `.claude/recall-context.md` to `.gitignore`
+4. Adds the Recall hooks to `.claude/settings.json`
 
 **That's it.** Compaction recovery is now automatic. You'll never need to think about it again.
 
@@ -190,9 +191,9 @@ When the parsed transcript exceeds 20K tokens, `condense-tail.py` splits it:
 | Part | Size | Treatment |
 |------|------|-----------|
 | Recent exchanges | ~15K tokens | Kept verbatim (most recent context matters most) |
-| Older context | Up to 85K tokens | Summarized by a single `claude -p --model sonnet` call (~30-40s) |
+| Older context | Up to 85K tokens | Summarized by Sonnet (automatic: `claude -p` call, manual `/recall`: subagent) |
 
-The result is always between 15-18K tokens on average, capped below 20K (~10% of Claude Code's 200K context window). For shorter sessions (<20K tokens), the full transcript is kept as-is with no API call. The Sonnet call uses your existing Claude Code authentication — no additional API keys needed.
+The result is always between 15-18K tokens on average, capped below 20K (~10% of Claude Code's 200K context window). For shorter sessions (<20K tokens), the full transcript is kept as-is with no summarization call.
 
 ### Where Files Live
 
