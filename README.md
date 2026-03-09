@@ -102,12 +102,14 @@ Recall covers both ways people use Claude Code:
 
 This is the "set it and forget it" mode. You don't change anything about how you work. When auto-compaction triggers — or when you manually run `/compact` — Recall kicks in automatically.
 
-**You do nothing.** Claude gets both its built-in compaction summary (~3,500 tokens) *and* Recall's detailed transcript (15-18K tokens) — 4-5x more context than compaction alone. Claude prints a stats line and continues where it left off:
+**You do nothing.** Claude gets both its built-in compaction summary *and* Recall's detailed transcript (15-18K tokens) — far more context than compaction alone. If everything works ideally, Claude prints a stats line like:
 
 ```
 Recall loaded: ~16,440 tokens (25% verbatim, 72% summarized)
 Full transcript: recall-943494ae.md
 ```
+
+Claude doesn't always print this — but don't worry, Recall still did its job. You'll notice the PreCompact hook running before compaction happens, which is where Recall parses and injects the transcript. The full conversation context is there even if Claude doesn't explicitly acknowledge it.
 
 ### Without auto-compaction (power mode)
 
