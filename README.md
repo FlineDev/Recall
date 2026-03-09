@@ -66,21 +66,25 @@ By default, third-party plugins don't auto-update. To receive new features and f
 
 With this enabled, Claude Code checks for plugin updates on startup and notifies you when a new version is available.
 
-### Step 2: Set up each project
+### Step 2: Start using Recall
 
-In every project where you want automatic recovery, run:
+After installation, `/recall` works immediately — no per-project setup needed:
 
 ```
-/recall:init
+/recall <session-id>
 ```
 
-This does four things:
-1. Creates `.claude/recall-context.md` (auto-populated by the hook)
-2. Adds `@.claude/recall-context.md` as the first line of your `CLAUDE.md`
-3. Adds `.claude/recall-context.md` to `.gitignore`
-4. Adds the Recall hooks to `.claude/settings.json`
+Start a new session, paste the session ID from a previous chat, and Recall restores the full conversation context. That's it.
 
-**That's it.** Compaction recovery is now automatic. You'll never need to think about it again.
+### Optional: Automatic compaction integration
+
+If you want Recall to **automatically** kick in whenever compaction happens (auto or manual `/compact`), run this once per project:
+
+```
+/recall:compact-on
+```
+
+This hooks Recall into the compaction lifecycle so recovery happens without you having to do anything. To remove the integration later, run `/recall:compact-off`.
 
 ### Requirements
 

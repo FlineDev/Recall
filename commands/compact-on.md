@@ -112,4 +112,4 @@ The hooks to add (replace `RECALL_SCRIPTS` with the resolved absolute path):
 
 Tell the user:
 
-**Recall is configured.** Recovery after compaction is now automatic. Run `/compact` to test it, or use `/recall <session-id>` to load a previous session.
+**Compaction integration enabled.** Recall will now automatically preserve your conversation when compaction happens. Run `/compact` to test it. To disable, run `/recall:compact-off`.

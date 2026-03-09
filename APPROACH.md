@@ -56,7 +56,7 @@ This takes ~30-40 seconds and produces a ~17.5K token output (within the 15-20K 
 
 ## Per-Project Setup
 
-Each project needs four things (configured by `/recall:init`):
+Each project needs four things (configured by `/recall:compact-on`):
 1. `@.claude/recall-context.md` as the first line of CLAUDE.md
 2. `.claude/recall-context.md` file (placeholder, auto-populated by hook)
 3. `.claude/recall-context.md` in `.gitignore`
