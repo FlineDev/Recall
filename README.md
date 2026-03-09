@@ -53,8 +53,6 @@ Start Claude Code, then run:
 
 If you're in an active session, run `/reload-plugins` to activate immediately.
 
-The plugin installs at user scope (available in all projects). It registers two hooks automatically (PreCompact + SessionStart).
-
 ### Automatic Updates (Optional, Recommended)
 
 By default, third-party plugins don't auto-update. To receive new features and fixes automatically:
