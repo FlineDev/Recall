@@ -2,7 +2,10 @@
 
 **Get the most out of Claude Code's 200K context window** — without paying for the 1M token tier.
 
-Claude Code's 200K context sounds like a lot, but ~20-25% goes to system overhead (tools, prompts, CLAUDE.md), and auto-compaction triggers at ~85%. That leaves roughly 120-130K usable tokens — and the 1M tier isn't 5x more, it's effectively **~8x** the usable context (since overhead is fixed). Recall bridges this gap by making the 200K window renewable: when context runs out, start a new session and restore everything that matters in seconds.
+Claude Code's 200K context sounds like a lot, but ~20-25% goes to system overhead (tools, prompts, CLAUDE.md), and auto-compaction triggers at ~85%. That leaves roughly 120-130K usable tokens — and the 1M tier isn't 5x more, it's effectively **~8x** the usable context (since overhead is fixed).
+
+> [!TIP]
+> Recall bridges this gap by making the 200K window renewable: when context runs out, start a new session and restore everything that matters in seconds.
 
 Without Recall, compaction compresses your entire conversation into a summary. Recall preserves **far more detail** (15-18K tokens of actual conversation), giving Claude the full conversation arc to continue where you left off.
 
@@ -53,7 +56,7 @@ Start Claude Code, then run:
 /plugin install recall
 ```
 
-If you're in an active session, run `/reload-plugins` to activate immediately.
+If you're in an active session, run `/reload-plugins` to activate immediately. The [FlineDev Marketplace](https://github.com/FlineDev/Marketplace) has more plugins — check it out.
 
 ### Automatic Updates (Optional, Recommended)
 
