@@ -31,7 +31,7 @@ Recall/
 
 ## Architecture: PreCompact writes, CLAUDE.md reads, SessionStart cleans
 
-Claude Code's SessionStart hook stdout is silently dropped (bug: github.com/anthropics/claude-code/issues/28305).
+Claude Code's SessionStart hook stdout is silently dropped ([bug](https://github.com/anthropics/claude-code/issues/28305)).
 However, CLAUDE.md IS re-read from disk after every compaction, and `@file` references are resolved during that re-read.
 
 ### Hook Flow
