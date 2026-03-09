@@ -134,17 +134,30 @@ In power mode you benefit even more: there's no compaction summary at all, so Cl
 
 ## How It Works
 
-### Transcript Parsing
+### The Pipeline
 
-Recall hooks into Claude Code's lifecycle via a **PreCompact hook** that fires before every compaction (auto or manual). It reads the raw JSONL session transcript — the complete, append-only log that Claude Code maintains at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`. This means Recall always has access to the **full session history**, even after multiple compactions in the same session.
+```
+┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
+│  1. Parse            │     │  2. Condense          │     │  3. Inject           │
+│                      │────▶│     (if needed)        │────▶│                      │
+│  parse-transcript.py │     │  condense-tail.py     │     │  pre-compact.sh      │
+│                      │     │                        │     │  post-compact.sh     │
+│  Reads raw JSONL     │     │  >20K tokens?          │     │  session-start.sh    │
+│  Strips 99% noise    │     │  Split + summarize     │     │                      │
+│  Keeps all messages  │     │  older context          │     │  Writes to project   │
+│  verbatim            │     │  ≤20K? Keep as-is      │     │  + cleans up         │
+└─────────────────────┘     └──────────────────────┘     └─────────────────────┘
+```
 
-The parser strips 99% of noise (tool result contents, thinking blocks, system reminders, progress events) and produces a structured markdown transcript. The result is written to both `/tmp/recall-<session-id>.md` (persistent reference) and `.claude/recall-context.md` (for automatic injection via CLAUDE.md `@`-reference).
+### Step 1: Parse ([`parse-transcript.py`](skills/recall/scripts/parse-transcript.py))
 
-A **SessionStart hook** cleans up `.claude/recall-context.md` on every new session start, preventing stale content from leaking into the next session.
+Reads the raw JSONL session transcript — the complete, append-only log that Claude Code maintains at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`. This means Recall always has access to the **full session history**, even after multiple compactions in the same session.
 
-### Condensation (for large sessions)
+The parser strips 99% of noise (tool result contents, thinking blocks, system reminders, progress events) and produces a structured markdown transcript with every user message and assistant response verbatim, plus summarized tool calls.
 
-When the parsed transcript exceeds 20K tokens, `condense-tail.py` splits it:
+### Step 2: Condense ([`condense-tail.py`](skills/recall/scripts/condense-tail.py))
+
+If the parsed transcript exceeds 20K tokens, it gets split:
 
 | Part | Size | Treatment |
 |------|------|-----------|
@@ -153,8 +166,16 @@ When the parsed transcript exceeds 20K tokens, `condense-tail.py` splits it:
 
 The result is always between 15-18K tokens on average, capped below 20K (~10% of Claude Code's 200K context window). For shorter sessions (<20K tokens), the full transcript is kept as-is with no summarization call.
 
+### Step 3: Inject (hooks)
+
+Three shell scripts handle the lifecycle:
+
+- **[`pre-compact.sh`](skills/recall/scripts/pre-compact.sh)** — Runs before compaction. Orchestrates the parse + condense pipeline and writes the result to both `/tmp/recall-<session-id>.md` (persistent) and `.claude/recall-context.md` (for automatic injection via CLAUDE.md `@`-reference).
+- **[`post-compact.sh`](skills/recall/scripts/post-compact.sh)** — Runs after compaction. Outputs a short reminder to Claude to act on the loaded recall transcript.
+- **[`session-start.sh`](skills/recall/scripts/session-start.sh)** — Runs on every session start. Cleans up `.claude/recall-context.md` to prevent stale content from leaking into new sessions or parallel sessions.
+
 ### Where Files Live
 
 - **Raw transcripts:** `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl` — Claude Code's append-only session log
 - **Recall output:** `/tmp/recall-<session-id>.md` — persists until reboot, useful for manual `/recall` across sessions
-- **Auto-injection:** `.claude/recall-context.md` — written by PreCompact, read via CLAUDE.md `@`-reference, cleaned by SessionStart
+- **Auto-injection:** `.claude/recall-context.md` — written by pre-compact, read via CLAUDE.md `@`-reference, cleaned by session-start

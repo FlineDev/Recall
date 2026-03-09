@@ -10,6 +10,20 @@ import sys
 import re
 from pathlib import Path
 
+# ── Constants ────────────────────────────────────────────────────────────────
+BYTES_PER_TOKEN = 3.0             # Token estimation: bytes / 3.0 (calibrated on 50+ sessions)
+MAX_FILES_SHOWN = 25              # Cap "Files Touched" section to this many entries
+MAX_ENTRIES_PER_MESSAGE = 10      # Split oversized bot messages into chunks of this size
+BASH_CMD_TRUNCATE = 200           # Truncate Bash command display
+QUESTION_TRUNCATE = 150           # Truncate AskUserQuestion text
+URL_TRUNCATE = 100                # Truncate WebFetch URLs and WebSearch queries
+TOOL_SEARCH_TRUNCATE = 80         # Truncate ToolSearch queries
+SKILL_ARGS_TRUNCATE = 300         # Truncate skill arguments in injection
+MAX_TOOL_PARAMS = 3               # Max parameters shown for unknown tools
+STDOUT_TRUNCATE = 200             # Truncate command output in tool results
+SUMMARY_LOOKAHEAD = 5             # Lines to look ahead for summary after compaction boundary
+# ─────────────────────────────────────────────────────────────────────────────
+
 
 def find_transcript(session_id, project_path=None):
    """Find the transcript JSONL file for a given session ID."""
@@ -61,7 +75,7 @@ def summarize_tool_call(name, inp):
       content_len = len(inp.get("content", ""))
       return f"Write: {path} ({content_len:,} chars)"
    elif name == "Bash":
-      cmd = inp.get("command", "?")[:200]
+      cmd = inp.get("command", "?")[:BASH_CMD_TRUNCATE]
       bg = " [bg]" if inp.get("run_in_background") else ""
       return f"Bash: {cmd}{bg}"
    elif name == "Agent":
@@ -97,23 +111,23 @@ def summarize_tool_call(name, inp):
    elif name == "AskUserQuestion":
       qs = inp.get("questions", [])
       if qs:
-         return f"AskUser: {qs[0].get('question', '?')[:150]}"
+         return f"AskUser: {qs[0].get('question', '?')[:QUESTION_TRUNCATE]}"
       return "AskUser: (no question)"
    elif name == "EnterPlanMode":
       return "EnterPlanMode"
    elif name == "ExitPlanMode":
       return "ExitPlanMode"
    elif name == "WebFetch":
-      return f"WebFetch: {inp.get('url', '?')[:100]}"
+      return f"WebFetch: {inp.get('url', '?')[:URL_TRUNCATE]}"
    elif name == "WebSearch":
-      return f"WebSearch: {inp.get('query', '?')[:100]}"
+      return f"WebSearch: {inp.get('query', '?')[:URL_TRUNCATE]}"
    elif name == "ToolSearch":
-      return f"ToolSearch: {inp.get('query', '?')[:80]}"
+      return f"ToolSearch: {inp.get('query', '?')[:TOOL_SEARCH_TRUNCATE]}"
    elif name == "TaskStop":
       return f"TaskStop: {inp.get('task_id', '?')}"
    else:
       params_summary = ", ".join(
-         f"{k}={str(v)[:50]}" for k, v in list(inp.items())[:3]
+         f"{k}={str(v)[:50]}" for k, v in list(inp.items())[:MAX_TOOL_PARAMS]
       )
       return f"{name}({params_summary})"
 
@@ -151,7 +165,7 @@ def condense_skill_injection(text):
 
    line = f"[Skill loaded: {skill_name} (~{content_words} words / ~{content_tokens} tokens)]"
    if args:
-      line += f"\n[Skill arguments: {args[:300]}]"
+      line += f"\n[Skill arguments: {args[:SKILL_ARGS_TRUNCATE]}]"
 
    return line
 
@@ -287,7 +301,7 @@ def parse_session(transcript_path):
       if bdata["kind"] == "microcompact":
          continue  # microcompacts don't have summary messages
       # The summary is the next user-type message after the boundary
-      for j in range(boundary_idx + 1, min(boundary_idx + 5, len(lines))):
+      for j in range(boundary_idx + 1, min(boundary_idx + SUMMARY_LOOKAHEAD, len(lines))):
          try:
             obj = json.loads(lines[j])
          except json.JSONDecodeError:
@@ -401,7 +415,7 @@ def parse_session(transcript_path):
                if m:
                   stdout = m.group(1).strip()
                   if stdout:
-                     texts.append(f"[Command output: {stdout[:200]}]")
+                     texts.append(f"[Command output: {stdout[:STDOUT_TRUNCATE]}]")
             else:
                texts.append(content)
          elif isinstance(content, list):
@@ -449,7 +463,7 @@ def parse_session(transcript_path):
                      if m:
                         stdout = m.group(1).strip()
                         if stdout:
-                           texts.append(f"[Command output: {stdout[:200]}]")
+                           texts.append(f"[Command output: {stdout[:STDOUT_TRUNCATE]}]")
                      continue
                   if text.startswith("[Image:"):
                      texts.append(text)
@@ -595,7 +609,7 @@ def estimate_tokens(text):
    - bytes/3.0 (new): avg error +0.1%, avg |error| 7.5%
    """
    byte_count = len(text.encode("utf-8")) if isinstance(text, str) else len(text)
-   return int(byte_count / 3.0)
+   return int(byte_count / BYTES_PER_TOKEN)
 
 
 def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
@@ -679,7 +693,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
             x[0],
          ),
       )
-      max_files = 25
+      max_files = MAX_FILES_SHOWN
       shown_files = sorted_files[:max_files]
       remaining = len(sorted_files) - len(shown_files)
       for path, ops in shown_files:
@@ -750,7 +764,7 @@ def format_output(entries, metadata, total_bytes, total_lines, transcript_path):
          tr_count = entry.get("tool_results_count", 0)
          tr_bytes = entry.get("tool_results_bytes", 0)
          if tr_count:
-            tr_tokens = int(tr_bytes / 3.0)
+            tr_tokens = int(tr_bytes / BYTES_PER_TOKEN)
             content_lines.append(
                f"[+ {tr_count} tool results returned, ~{tr_tokens:,} tokens]"
             )
@@ -843,7 +857,6 @@ def main():
    # When Claude works autonomously, a single "bot message" (everything between
    # two user messages) can have hundreds of entries. Splitting keeps the output
    # readable and ensures condense-tail.py can split at meaningful boundaries.
-   MAX_ENTRIES_PER_MESSAGE = 10
    split_entries = []
    i = 0
    while i < len(entries):
