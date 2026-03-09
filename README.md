@@ -71,7 +71,7 @@ With this enabled, Claude Code checks for plugin updates on startup and notifies
 In every project where you want automatic recovery, run:
 
 ```
-/recall:setup
+/recall:init
 ```
 
 This does three things:
