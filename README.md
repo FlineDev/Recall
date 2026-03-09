@@ -132,16 +132,16 @@ In power mode you benefit even more: there's no compaction summary at all, so Cl
 ### The Pipeline
 
 ```
-┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
-│  1. Parse            │     │  2. Condense          │     │  3. Inject           │
-│                      │────▶│     (if needed)        │────▶│                      │
-│  parse-transcript.py │     │  condense-tail.py     │     │  pre-compact.sh      │
-│                      │     │                        │     │  post-compact.sh     │
-│  Reads raw JSONL     │     │  >20K tokens?          │     │  session-start.sh    │
-│  Strips 99% noise    │     │  Split + summarize     │     │                      │
-│  Keeps all messages  │     │  older context          │     │  Writes to project   │
-│  verbatim            │     │  ≤20K? Keep as-is      │     │  + cleans up         │
-└─────────────────────┘     └──────────────────────┘     └─────────────────────┘
+┌────────────────────────┐     ┌────────────────────────┐     ┌────────────────────────┐
+│  1. Parse              │     │  2. Condense           │     │  3. Inject             │
+│                        │────▶│     (if needed)        │────▶│                        │
+│  parse-transcript.py   │     │  condense-tail.py      │     │  pre-compact.sh        │
+│                        │     │                        │     │  post-compact.sh       │
+│  Reads raw JSONL       │     │  >20K tokens?          │     │  session-start.sh      │
+│  Strips 99% noise      │     │  Split + summarize     │     │                        │
+│  Keeps all messages    │     │  older context         │     │  Writes to project     │
+│  verbatim              │     │  ≤20K? Keep as-is      │     │  + cleans up           │
+└────────────────────────┘     └────────────────────────┘     └────────────────────────┘
 ```
 
 ### Step 1: Parse ([`parse-transcript.py`](skills/recall/scripts/parse-transcript.py))
