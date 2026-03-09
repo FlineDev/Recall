@@ -1,4 +1,4 @@
-# Recall
+# 🧠 Recall
 
 **Get the most out of Claude Code's 200K context window** — without paying for the 1M token tier.
 
