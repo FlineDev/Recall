@@ -1,5 +1,5 @@
 {
-  "description": "Recall: automatic context recovery after compaction. PreCompact generates the transcript into .claude/recall-context.md (pulled in via CLAUDE.md @-reference). SessionStart cleans up the file.",
+  "description": "Recall: automatic context recovery after compaction. PreCompact generates the transcript into .claude/recall-context.md (pulled in via CLAUDE.md @-reference). SessionStart(compact) reminds Claude to act on it. SessionStart (all) cleans up the file.",
   "hooks": {
     "PreCompact": [
       {
@@ -14,6 +14,15 @@
       }
     ],
     "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/recall/scripts/post-compact.sh"
+          }
+        ]
+      },
       {
         "matcher": "",
         "hooks": [

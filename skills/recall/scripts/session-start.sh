@@ -9,8 +9,15 @@
 
 INPUT=$(cat)
 CWD=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('cwd',''))" 2>/dev/null)
+SOURCE=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('source',''))" 2>/dev/null)
 
 if [ -z "$CWD" ]; then
+   exit 0
+fi
+
+# After compaction, the recall-context.md is still needed (Claude reads it via @-reference).
+# Only clean up on fresh session starts, not after compaction.
+if [ "$SOURCE" = "compact" ]; then
    exit 0
 fi
 
