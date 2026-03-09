@@ -31,8 +31,7 @@ Recall/
 ## Running Tests
 
 ```bash
-cd /Users/jeehut/Developer/Indie/Plugins/Recall
-python3 -m pytest tests/ -v
+pytest tests/ -v
 ```
 
 All 170 tests should pass. If pytest is not installed: `pipx install pytest`.
