@@ -9,17 +9,17 @@
 
 INPUT=$(cat)
 CWD=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('cwd',''))" 2>/dev/null)
-SOURCE=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('source',''))" 2>/dev/null)
 
 if [ -z "$CWD" ]; then
    exit 0
 fi
 
-# After compaction, the recall-context.md is still needed (Claude reads it via @-reference).
-# Only clean up on fresh session starts, not after compaction.
-if [ "$SOURCE" = "compact" ]; then
-   exit 0
-fi
+# Always clean up, regardless of source (startup, compact, resume, clear).
+# After compaction: CLAUDE.md was already re-read (content consumed), so cleaning is safe.
+# Cleaning after compact is important for parallel sessions in the same project —
+# stale content from one session's compaction must not leak into another session.
+# On fresh starts: prevents leftover content from a previous session (e.g., user exited
+# mid-compaction) from being injected into the new session's context.
 
 CONTEXT_FILE="$CWD/.claude/recall-context.md"
 

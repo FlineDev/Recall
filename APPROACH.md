@@ -22,10 +22,12 @@ However, CLAUDE.md IS re-read from disk after every compaction, and `@file` refe
    - Outputs a short stdout reminder to Claude to act on the recall transcript
    - Reinforces the instructions in `recall-context.md`
 
-4. **SessionStart hook** (runs on every fresh session start):
+4. **SessionStart hook** (runs on every session start, including after compaction):
    - Empties `.claude/recall-context.md` (writes placeholder comment)
-   - Matcher `""` matches ALL sources, but skips cleanup when source is "compact"
-   - This prevents stale content from persisting into the next session
+   - Matcher `""` matches ALL sources (startup, compact, resume, clear)
+   - After compaction: safe because CLAUDE.md was already re-read (content consumed)
+   - Essential for parallel sessions — stale content from one session must not leak into another
+   - On fresh starts: catches leftovers from interrupted compactions
 
 ### Why this works
 
@@ -36,10 +38,9 @@ However, CLAUDE.md IS re-read from disk after every compaction, and `@file` refe
 ### Edge cases
 
 - **Multiple sessions same project**: PreCompact overwrites the file (last writer wins).
-  Unlikely two compactions happen simultaneously.
-- **Stale content on new session**: SessionStart empties the file, but CLAUDE.md was
-  already read before the hook fires. Mitigation: the recall stats header includes the
-  session ID, so Claude can recognize stale content from a different session.
+  SessionStart always cleans up after compaction, so parallel sessions don't see stale content.
+- **Interrupted compaction**: If the user exits mid-compaction, the file may still have content.
+  SessionStart on the next fresh session cleans it up.
 
 ## Condensation Strategy
 
