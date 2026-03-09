@@ -18,9 +18,13 @@ However, CLAUDE.md IS re-read from disk after every compaction, and `@file` refe
    - CLAUDE.md contains `@.claude/recall-context.md` (first line)
    - The recall content is pulled into Claude's context automatically
 
-3. **SessionStart hook** (runs on every session start):
+3. **SessionStart(compact) hook** (runs after compaction):
+   - Outputs a short stdout reminder to Claude to act on the recall transcript
+   - Reinforces the instructions in `recall-context.md`
+
+4. **SessionStart hook** (runs on every fresh session start):
    - Empties `.claude/recall-context.md` (writes placeholder comment)
-   - Matcher `""` matches ALL sources (startup, compact, resume, clear)
+   - Matcher `""` matches ALL sources, but skips cleanup when source is "compact"
    - This prevents stale content from persisting into the next session
 
 ### Why this works

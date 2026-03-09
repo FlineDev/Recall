@@ -108,6 +108,15 @@ Add these hooks to your `.claude/settings.json` (project or global):
     ],
     "SessionStart": [
       {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<path-to>/recall/scripts/post-compact.sh"
+          }
+        ]
+      },
+      {
         "matcher": "",
         "hooks": [
           {

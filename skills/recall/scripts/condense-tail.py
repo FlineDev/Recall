@@ -35,7 +35,7 @@ def estimate_tokens(text):
    """Estimate token count from text using byte count / 3.0.
 
    Calibrated against Xenova/claude-tokenizer on 50+ real sessions.
-   Old bytes/2.2 overcounted by ~37%. New bytes/3.0: avg error +0.1%.
+   Average error +0.1%, average |error| 7.5%.
    """
    byte_count = len(text.encode("utf-8")) if isinstance(text, str) else len(text)
    return int(byte_count / 3.0)
