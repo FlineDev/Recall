@@ -1,12 +1,12 @@
 ---
-name: recall
+name: session
 description: "Recall a previous session with full context from its transcript. Use when user provides a session ID to continue work from a previous chat, or automatically after compaction to restore lost detail."
 metadata:
   keywords: "recall, session, resume, continue, transcript, context, compaction, restore"
 argument-hint: "<session-id>"
 ---
 
-# Recall
+# Recall Session
 
 Recall a previous Claude Code session with much richer context than auto-compaction provides. Keeps ALL user messages and assistant responses verbatim while achieving 99%+ compression.
 
@@ -16,7 +16,7 @@ Two hooks handle automatic recovery (no action needed):
 - **PreCompact** parses the transcript and writes to `.claude/recall-context.md`
 - **SessionStart** cleans up the recall file to prevent stale content
 
-This skill handles **manual recall** — when the user runs `/recall <session-id>` in a new session.
+This skill handles **manual recall** — when the user runs `/recall:session <session-id>` in a new session.
 
 ## Execution Steps
 

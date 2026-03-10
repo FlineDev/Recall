@@ -66,10 +66,10 @@ If you're in an active session, run `/reload-plugins` to activate immediately. R
 
 ### Step 2: Start using Recall
 
-After installation, `/recall` works immediately — no per-project setup needed:
+After installation, `/recall:session` works immediately — no per-project setup needed:
 
 ```
-/recall <session-id>
+/recall:session <session-id>
 ```
 
 Start a new session, paste the session ID from a previous chat, and Recall restores the full conversation context. That's it.
@@ -120,7 +120,7 @@ claude --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890
 Instead of `--resume` (which just replays the compressed summary), start a fresh session and use Recall:
 
 ```
-/recall a1b2c3d4-e5f6-7890-abcd-ef1234567890
+/recall:session a1b2c3d4-e5f6-7890-abcd-ef1234567890
 ```
 
 The session ID is printed right above where your new `claude` session starts — just copy it. Within seconds, Claude has the full conversation history and continues exactly where you left off. Technically a new session, but with all the context that matters.
@@ -144,13 +144,13 @@ In power mode you benefit even more: there's no compaction summary at all, so Cl
 └────────────────────────┘     └────────────────────────┘     └────────────────────────┘
 ```
 
-### Step 1: Parse ([`parse-transcript.py`](skills/recall/scripts/parse-transcript.py))
+### Step 1: Parse ([`parse-transcript.py`](skills/session/scripts/parse-transcript.py))
 
 Reads the raw JSONL session transcript — the complete, append-only log that Claude Code maintains at `~/.claude/projects/<encoded-cwd>/<session-id>.jsonl`. This means Recall always has access to the **full session history**, even after multiple compactions in the same session.
 
 The parser strips 99% of noise (tool result contents, thinking blocks, system reminders, progress events) and produces a structured markdown transcript with every user message and assistant response verbatim, plus summarized tool calls.
 
-### Step 2: Condense ([`condense-tail.py`](skills/recall/scripts/condense-tail.py))
+### Step 2: Condense ([`condense-tail.py`](skills/session/scripts/condense-tail.py))
 
 If the parsed transcript exceeds 20K tokens, it gets split:
 
@@ -165,9 +165,9 @@ The result is always between 15-18K tokens on average, capped below 20K (~10% of
 
 Three shell scripts handle the lifecycle:
 
-- **[`pre-compact.sh`](skills/recall/scripts/pre-compact.sh)** — Runs before compaction. Orchestrates the parse + condense pipeline and writes the result to both `/tmp/recall-<session-id>.md` (persistent) and `.claude/recall-context.md` (for automatic injection via CLAUDE.md `@`-reference).
-- **[`post-compact.sh`](skills/recall/scripts/post-compact.sh)** — Runs after compaction. Outputs a short reminder to Claude to act on the loaded recall transcript.
-- **[`session-start.sh`](skills/recall/scripts/session-start.sh)** — Runs on every session start. Cleans up `.claude/recall-context.md` to prevent stale content from leaking into new sessions or parallel sessions.
+- **[`pre-compact.sh`](skills/session/scripts/pre-compact.sh)** — Runs before compaction. Orchestrates the parse + condense pipeline and writes the result to both `/tmp/recall-<session-id>.md` (persistent) and `.claude/recall-context.md` (for automatic injection via CLAUDE.md `@`-reference).
+- **[`post-compact.sh`](skills/session/scripts/post-compact.sh)** — Runs after compaction. Outputs a short reminder to Claude to act on the loaded recall transcript.
+- **[`session-start.sh`](skills/session/scripts/session-start.sh)** — Runs on every session start. Cleans up `.claude/recall-context.md` to prevent stale content from leaking into new sessions or parallel sessions.
 
 ### Where Files Live
 

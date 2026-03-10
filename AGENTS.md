@@ -4,7 +4,7 @@
 
 ```
 Recall/
-├── skills/recall/
+├── skills/session/
 │   └── scripts/           # Core scripts
 │       ├── parse-transcript.py   # JSONL → markdown parser (main script)
 │       ├── condense-tail.py      # Split + combine for large transcripts (>20K tokens)
@@ -25,7 +25,6 @@ Recall/
 ├── commands/
 │   ├── compact-on.md      # /recall:compact-on — enable compaction integration
 │   └── compact-off.md     # /recall:compact-off — disable compaction integration
-├── hooks/                 # Plugin system hook definitions
 └── README.md              # User-facing documentation
 ```
 
@@ -84,7 +83,7 @@ Each project needs four things (configured by `/recall:compact-on`):
 1. `@.claude/recall-context.md` as the first line of CLAUDE.md
 2. `.claude/recall-context.md` file (placeholder, auto-populated by hook)
 3. `.claude/recall-context.md` in `.gitignore`
-4. Recall hooks in `.claude/settings.json` (plugin hooks are unreliable, so compact-on writes them directly)
+4. Recall hooks in `.claude/settings.json` (per-project, written by compact-on so users control which projects use it)
 
 ## Testing
 
@@ -96,7 +95,7 @@ All 170 tests should pass. If pytest is not installed: `pipx install pytest`.
 
 ### When to Run Tests
 
-- **After ANY change** to scripts in `skills/recall/scripts/` — run the full suite
+- **After ANY change** to scripts in `skills/session/scripts/` — run the full suite
 - **After modifying test fixtures** — regenerate with `python3 tests/generate_fixtures.py` then run tests
 - **Before committing** — always verify all tests pass
 

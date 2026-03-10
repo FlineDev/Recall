@@ -6,7 +6,7 @@ allowed-tools:
   - Write
 ---
 
-# Recall: Disable Compaction Integration
+# Disable Compaction Integration
 
 You are removing Recall's compaction integration from the current project. Follow these steps exactly:
 
@@ -39,4 +39,4 @@ Read `.gitignore`. Remove the line `.claude/recall-context.md` if present. Do no
 
 Tell the user:
 
-**Compaction integration disabled.** Recall hooks have been removed from this project. You can still use `/recall <session-id>` manually in any session. To re-enable, run `/recall:compact-on`.
+**Compaction integration disabled.** Recall hooks have been removed from this project. You can still use `/recall:session <session-id>` manually in any session. To re-enable, run `/recall:compact-on`.

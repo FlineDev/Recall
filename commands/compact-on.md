@@ -6,16 +6,16 @@ allowed-tools:
   - Write
 ---
 
-# Recall Setup
+# Enable Compaction Integration
 
 You are configuring the Recall plugin for the current project. This sets up automatic context recovery after compaction. Follow these steps exactly:
 
 ## Step 0: Resolve script paths
 
-The "Base directory for this skill" is provided above in the skill/command metadata. The scripts live at `<BASE_DIRECTORY>/../recall/scripts/`. Resolve the absolute path once:
+The "Base directory for this skill" is provided above in the skill/command metadata. The scripts live at `<BASE_DIRECTORY>/../session/scripts/`. Resolve the absolute path once:
 
 ```bash
-RECALL_SCRIPTS="$(cd "<BASE_DIRECTORY>/../recall/scripts" && pwd)"
+RECALL_SCRIPTS="$(cd "<BASE_DIRECTORY>/../session/scripts" && pwd)"
 echo "$RECALL_SCRIPTS"
 ```
 
