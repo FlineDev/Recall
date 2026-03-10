@@ -10,17 +10,6 @@ allowed-tools:
 
 You are configuring the Recall plugin for the current project. This sets up automatic context recovery after compaction. Follow these steps exactly:
 
-## Step 0: Resolve script paths
-
-Resolve the Recall plugin's installed path from `installed_plugins.json`, then find the scripts:
-
-```bash
-RECALL_SCRIPTS="$(python3 -c "import json,pathlib; d=json.load(open(pathlib.Path.home()/'.claude/plugins/installed_plugins.json')); entries=d.get('plugins',{}).get('recall@FlineDev',[]); print(entries[0]['installPath']+'/skills/session/scripts' if entries else '')" 2>/dev/null)"
-echo "$RECALL_SCRIPTS"
-```
-
-Store this path — you'll need it in Step 5.
-
 ## Step 1: Ensure .claude directory exists
 
 ```bash
@@ -59,13 +48,13 @@ Append this line (if not already present):
 
 ## Step 5: Add hooks to project settings
 
-Read `.claude/settings.json` (create it with `{}` if it doesn't exist). Add the Recall hooks to the `hooks` key. Use the absolute path from Step 0.
+Read `.claude/settings.json` (create it with `{}` if it doesn't exist). Add the Recall hooks to the `hooks` key.
 
 **If a `hooks` key already exists**, merge the Recall hooks into it. Do NOT overwrite existing hooks for other events. If `PreCompact` or `SessionStart` arrays already exist with Recall entries (check if the command path contains `recall`), replace them. Otherwise append.
 
 **If no `hooks` key exists**, add it.
 
-The hooks to add (replace `RECALL_SCRIPTS` with the resolved absolute path):
+The hooks to add — use **version-agnostic** paths that resolve to the latest cached version at runtime:
 
 ```json
 {
@@ -76,7 +65,7 @@ The hooks to add (replace `RECALL_SCRIPTS` with the resolved absolute path):
         "hooks": [
           {
             "type": "command",
-            "command": "RECALL_SCRIPTS/pre-compact.sh",
+            "command": "bash -c 'exec \"$(ls -d ~/.claude/plugins/cache/FlineDev/recall/*/skills/session/scripts 2>/dev/null | sort -V | tail -1)/pre-compact.sh\"'",
             "timeout": 300
           }
         ]
@@ -88,7 +77,7 @@ The hooks to add (replace `RECALL_SCRIPTS` with the resolved absolute path):
         "hooks": [
           {
             "type": "command",
-            "command": "RECALL_SCRIPTS/post-compact.sh"
+            "command": "bash -c 'exec \"$(ls -d ~/.claude/plugins/cache/FlineDev/recall/*/skills/session/scripts 2>/dev/null | sort -V | tail -1)/post-compact.sh\"'"
           }
         ]
       },
@@ -97,7 +86,7 @@ The hooks to add (replace `RECALL_SCRIPTS` with the resolved absolute path):
         "hooks": [
           {
             "type": "command",
-            "command": "RECALL_SCRIPTS/session-start.sh"
+            "command": "bash -c 'exec \"$(ls -d ~/.claude/plugins/cache/FlineDev/recall/*/skills/session/scripts 2>/dev/null | sort -V | tail -1)/session-start.sh\"'"
           }
         ]
       }
