@@ -155,17 +155,17 @@ Based on the transcript, re-read files needed to continue the pending work. Thin
 ### What was accomplished
 <Bullet list of completed work>
 
-### Pending / Next steps
-<Depends on how the previous session ended:>
-<- If the session was interrupted mid-task (rate limit, context limit, crash): Describe what was in progress and offer to continue, e.g. "Shall I continue with [specific task]?">
-<- If the session ended naturally (user's last request was fulfilled): Describe what the last exchange was about and what logical next steps might be, e.g. "We finished X. Next up could be Y or Z.">
-<- If unclear: State the last user message and assistant response so the user knows exactly where things stand.>
-
 ### Context loaded
 <List of files re-read and why each was needed>
 
 ### Files skipped
 <Brief list of files from the session that were NOT re-read, so user can correct if needed>
+
+### Where we left off
+<Depends on how the previous session ended:>
+<- If the session was interrupted mid-task (rate limit, context limit, crash): Describe what was in progress and offer to continue, e.g. "Shall I continue with [specific task]?">
+<- If the session ended naturally (user's last request was fulfilled): Describe what the last exchange was about and what logical next steps might be, e.g. "We finished X. Next up could be Y or Z.">
+<- If unclear: State the last user message and assistant response so the user knows exactly where things stand.>
 ```
 
 ## Technical Details
