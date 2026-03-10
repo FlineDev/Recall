@@ -1,4 +1,5 @@
 ---
+description: "Recall a Previous Session"
 argument-hint: "<session-id>"
 allowed-tools:
   - Bash
@@ -7,6 +8,16 @@ allowed-tools:
 ---
 
 # Recall a Previous Session
+
+**If no session ID was provided** (check `$ARGUMENTS` — if it's empty or missing), respond with:
+
+> **Usage:** `/recall:session <session-id>`
+>
+> The session ID is printed when you exit Claude Code or when a session ends. You can also find recent sessions with `claude --sessions`.
+
+Then stop — do not proceed with the steps below.
+
+---
 
 Recall a previous Claude Code session with much richer context than auto-compaction provides. Keeps ALL user messages and assistant responses verbatim while achieving 99%+ compression.
 
