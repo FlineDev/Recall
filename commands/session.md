@@ -78,7 +78,7 @@ python3 "$RECALL_SCRIPTS/condense-tail.py" split /tmp/recall-<SESSION_ID>.md <SE
 ```
 
 - **Exit code 2:** Transcript is ≤20K tokens — no condensation needed. Skip to Step 3.
-- **Exit code 0:** Condensation needed. Three files were created:
+- **Exit code 0:** Condensation needed. Print to the user: "Recovered ~{total}K tokens. Keeping recent {tail}K verbatim, summarizing older {older}K." (use the token counts from stderr output). Three files were created:
   - `/tmp/recall-older-<SID_PREFIX>.md` — older context that needs summarizing
   - `/tmp/recall-tail-<SID_PREFIX>.md` — recent exchanges (kept verbatim)
   - `/tmp/recall-prompt-<SID_PREFIX>.txt` — summarization prompt
