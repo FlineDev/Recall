@@ -12,10 +12,10 @@ You are configuring the Recall plugin for the current project. This sets up auto
 
 ## Step 0: Resolve script paths
 
-Find the Recall plugin scripts on macOS:
+Resolve the Recall plugin's installed path from `installed_plugins.json`, then find the scripts:
 
 ```bash
-RECALL_SCRIPTS="$(find ~/.claude/plugins/cache/FlineDev/recall -path "*/session/scripts/parse-transcript.py" 2>/dev/null | head -1 | xargs dirname)"
+RECALL_SCRIPTS="$(python3 -c "import json,pathlib; d=json.load(open(pathlib.Path.home()/'.claude/plugins/installed_plugins.json')); entries=d.get('plugins',{}).get('recall@FlineDev',[]); print(entries[0]['installPath']+'/skills/session/scripts' if entries else '')" 2>/dev/null)"
 echo "$RECALL_SCRIPTS"
 ```
 
