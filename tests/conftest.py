@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPTS_DIR = Path(__file__).parent.parent / "skills" / "recall" / "scripts"
+SCRIPTS_DIR = Path(__file__).parent.parent / "skills" / "session" / "scripts"
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 JSONL_DIR = FIXTURES_DIR / "jsonl"
 MD_DIR = FIXTURES_DIR / "markdown"
