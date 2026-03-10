@@ -1,6 +1,4 @@
 ---
-name: session
-description: "Recall a previous session with full context from its transcript."
 argument-hint: "<session-id>"
 allowed-tools:
   - Bash
@@ -8,7 +6,7 @@ allowed-tools:
   - Agent
 ---
 
-# Recall Session
+# Recall a Previous Session
 
 Recall a previous Claude Code session with much richer context than auto-compaction provides. Keeps ALL user messages and assistant responses verbatim while achieving 99%+ compression.
 
