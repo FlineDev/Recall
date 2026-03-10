@@ -1,6 +1,6 @@
 ---
 description: "Recall a Previous Session"
-argument-hint: "<session-id>"
+argument-hint: "<session-id or name>"
 allowed-tools:
   - Bash
   - Read
@@ -11,9 +11,10 @@ allowed-tools:
 
 **If no session ID was provided** (check `$ARGUMENTS` — if it's empty or missing), respond with:
 
-> **Usage:** `/recall:session <session-id>`
+> **Usage:** `/recall:session <session-id or name>`
 >
-> The session ID is printed when you exit Claude Code or when a session ends. You can also find recent sessions with `claude --sessions`.
+> Pass either a UUID session ID or a custom session name (from `/rename`).
+> The session ID is printed when you exit Claude Code. You can also find recent sessions with `claude --sessions` (run outside Claude Code).
 
 Then stop — do not proceed with the steps below.
 
@@ -33,22 +34,42 @@ This command handles **manual recall** — when the user runs `/recall:session <
 
 ### Step 0: Resolve script paths
 
-The "Base directory" is provided above in the command metadata. Resolve the scripts path:
+Find the Recall plugin scripts on macOS:
 
 ```bash
-RECALL_SCRIPTS="$(cd "<BASE_DIRECTORY>/scripts" 2>/dev/null && pwd || cd "<BASE_DIRECTORY>/../skills/session/scripts" 2>/dev/null && pwd)"
+RECALL_SCRIPTS="$(find ~/.claude/plugins/cache/FlineDev/recall -path "*/session/scripts/parse-transcript.py" 2>/dev/null | head -1 | xargs dirname)"
 echo "$RECALL_SCRIPTS"
 ```
 
-Store this path — you'll need it in all subsequent steps. If neither path resolves, check the plugin installation.
+If empty, the plugin may not be installed. Tell the user to run `/plugin install recall`.
+
+### Step 0.5: Resolve session ID
+
+The user provided: `$ARGUMENTS`
+
+**If it matches a UUID pattern** (8-4-4-4-12 hex like `a1b2c3d4-e5f6-7890-abcd-ef1234567890`), use it directly as the session ID.
+
+**If it does NOT match a UUID** (e.g. a custom name like `my-session`), it's a session name set via `/rename`. Resolve it to a UUID:
+
+```bash
+grep -rl "\"customTitle\":\"$ARGUMENTS\"" ~/.claude/projects/*/?.jsonl ~/.claude/projects/*/??.jsonl ~/.claude/projects/*/*.jsonl 2>/dev/null | head -1
+```
+
+Extract the UUID from the matching filename (the filename IS the session ID: `<uuid>.jsonl`). If no match is found, also try a case-insensitive partial match:
+
+```bash
+grep -ril "\"customTitle\":\".*$ARGUMENTS.*\"" ~/.claude/projects/*/*.jsonl 2>/dev/null | head -1
+```
+
+If still no match, tell the user: "Could not find a session named '$ARGUMENTS'. Try using the full session UUID instead."
+
+Use the resolved UUID as `<SESSION_ID>` for all subsequent steps.
 
 ### Step 1: Parse the transcript
 
 ```bash
 python3 "$RECALL_SCRIPTS/parse-transcript.py" <SESSION_ID> --cwd "$(pwd)" > /tmp/recall-<SESSION_ID>.md 2>/dev/null
 ```
-
-Replace `<SESSION_ID>` with the value from `$ARGUMENTS`.
 
 ### Step 2: Condense if needed
 
