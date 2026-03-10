@@ -1,9 +1,11 @@
 ---
 name: session
-description: "Recall a previous session with full context from its transcript. Use when user provides a session ID to continue work from a previous chat, or automatically after compaction to restore lost detail."
-metadata:
-  keywords: "recall, session, resume, continue, transcript, context, compaction, restore"
+description: "Recall a previous session with full context from its transcript."
 argument-hint: "<session-id>"
+allowed-tools:
+  - Bash
+  - Read
+  - Agent
 ---
 
 # Recall Session
@@ -16,24 +18,33 @@ Two hooks handle automatic recovery (no action needed):
 - **PreCompact** parses the transcript and writes to `.claude/recall-context.md`
 - **SessionStart** cleans up the recall file to prevent stale content
 
-This skill handles **manual recall** — when the user runs `/recall:session <session-id>` in a new session.
+This command handles **manual recall** — when the user runs `/recall:session <session-id>` in a new session.
 
 ## Execution Steps
 
-### Step 1: Parse the transcript
+### Step 0: Resolve script paths
 
-The "Base directory for this skill" is provided above in the skill metadata. Use it directly:
+The "Base directory" is provided above in the command metadata. Resolve the scripts path:
 
 ```bash
-python3 <BASE_DIRECTORY>/scripts/parse-transcript.py <SESSION_ID> --cwd "$(pwd)" > /tmp/recall-<SESSION_ID>.md 2>/dev/null
+RECALL_SCRIPTS="$(cd "<BASE_DIRECTORY>/scripts" 2>/dev/null && pwd || cd "<BASE_DIRECTORY>/../skills/session/scripts" 2>/dev/null && pwd)"
+echo "$RECALL_SCRIPTS"
 ```
 
-Replace `<SESSION_ID>` with the value from `{{args}}`.
+Store this path — you'll need it in all subsequent steps. If neither path resolves, check the plugin installation.
+
+### Step 1: Parse the transcript
+
+```bash
+python3 "$RECALL_SCRIPTS/parse-transcript.py" <SESSION_ID> --cwd "$(pwd)" > /tmp/recall-<SESSION_ID>.md 2>/dev/null
+```
+
+Replace `<SESSION_ID>` with the value from `$ARGUMENTS`.
 
 ### Step 2: Condense if needed
 
 ```bash
-python3 <BASE_DIRECTORY>/scripts/condense-tail.py split /tmp/recall-<SESSION_ID>.md <SESSION_ID>
+python3 "$RECALL_SCRIPTS/condense-tail.py" split /tmp/recall-<SESSION_ID>.md <SESSION_ID>
 ```
 
 - **Exit code 2:** Transcript is ≤20K tokens — no condensation needed. Skip to Step 3.
@@ -77,7 +88,7 @@ python3 <BASE_DIRECTORY>/scripts/condense-tail.py split /tmp/recall-<SESSION_ID>
   After the subagent finishes, combine the results:
 
   ```bash
-  python3 <BASE_DIRECTORY>/scripts/condense-tail.py combine /tmp/recall-<SESSION_ID>.md <SESSION_ID>
+  python3 "$RECALL_SCRIPTS/condense-tail.py" combine /tmp/recall-<SESSION_ID>.md <SESSION_ID>
   ```
 
 ### Step 3: Read and analyze the transcript

@@ -23,8 +23,9 @@ Recall/
 │   ├── test_parse_postprocess.py
 │   └── test_condense_tail.py     # Tests for split/combine logic
 ├── commands/
-│   ├── compact-on.md      # /recall:compact-on — enable compaction integration
-│   └── compact-off.md     # /recall:compact-off — disable compaction integration
+│   ├── session.md        # /recall:session — manual session recall
+│   ├── compact-on.md     # /recall:compact-on — enable compaction integration
+│   └── compact-off.md    # /recall:compact-off — disable compaction integration
 └── README.md              # User-facing documentation
 ```
 
